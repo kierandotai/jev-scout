@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>jev-scout dashboard</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --panel-bg: #ffffff;
+    --fg: #16181d;
+    --fg-muted: #5b6270;
+    --border: #e2e4e9;
+    --accent: #2f6fed;
+    --good: #1a8a4c;
+    --mid: #b8860b;
+    --bad: #c0392b;
+    --badge-bg: #eef0f4;
+    --track-bg: #e7e9ee;
+    --code-bg: #f0f1f4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161a;
+      --panel-bg: #1b1e24;
+      --fg: #e7e9ee;
+      --fg-muted: #9aa1ac;
+      --border: #2c2f36;
+      --accent: #6d9bff;
+      --good: #3fc57c;
+      --mid: #e0b34d;
+      --bad: #ef6a5b;
+      --badge-bg: #262a31;
+      --track-bg: #2a2d34;
+      --code-bg: #24272e;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-bg);
+  }
+
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  header .subtitle {
+    color: var(--fg-muted);
+    font-size: 12px;
+  }
+
+  #banner {
+    margin: 12px 20px 0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: var(--bad);
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  #banner[hidden] { display: none; }
+
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  section.panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  section.panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+    margin: 0 0 12px;
+  }
+
+  .empty-state {
+    color: var(--fg-muted);
+    font-style: italic;
+    margin: 4px 0;
+  }
+
+  /* --- Decision feed --- */
+
+  .search-group {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .search-group:last-child { margin-bottom: 0; }
+
+  .group-header {
+    background: var(--badge-bg);
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .group-query {
+    font-weight: 600;
+  }
+
+  .group-goal {
+    color: var(--fg-muted);
+    font-size: 12px;
+  }
+
+  .group-children {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .row {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .row:last-child { border-bottom: none; }
+
+  .row-title {
+    font-weight: 500;
+    flex: 1 1 220px;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .row-domain {
+    color: var(--fg-muted);
+    font-size: 12px;
+    flex: 0 0 auto;
+  }
+
+  .row-meta, .row-reasons {
+    color: var(--fg-muted);
+    font-size: 12px;
+    flex: 1 1 100%;
+  }
+
+  .strikethrough {
+    text-decoration: line-through;
+    color: var(--fg-muted);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--badge-bg);
+    color: var(--fg-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .gate-row .row-title {
+    flex: 1 1 100%;
+  }
+
+  /* --- Confidence bars --- */
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
+  .bar-label {
+    font-size: 11px;
+    color: var(--fg-muted);
+    width: 78px;
+    flex: 0 0 auto;
+  }
+
+  .bar-track {
+    width: 60px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--track-bg);
+    overflow: hidden;
+    flex: 0 0 auto;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+
+  .bar-value {
+    font-size: 11px;
+    color: var(--fg-muted);
+    width: 32px;
+    flex: 0 0 auto;
+  }
+
+  /* --- Cost ticker --- */
+
+  #ticker {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .ticker-cost { color: var(--fg); }
+  .ticker-calls { color: var(--fg-muted); font-size: 14px; font-weight: 500; }
+
+  /* --- Domain table --- */
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    color: var(--fg-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>jev-scout dashboard</h1>
+    <span class="subtitle">live Jev decision observability</span>
+  </header>
+
+  <div id="banner" role="alert" hidden></div>
+
+  <main>
+    <section class="panel" id="feed-panel">
+      <h2>Decision feed</h2>
+      <div id="feed"></div>
+    </section>
+
+    <section class="panel" id="ticker-panel">
+      <h2>Cost</h2>
+      <div id="ticker"></div>
+    </section>
+
+    <section class="panel" id="domains-panel">
+      <h2>Domain credibility</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Judgments</th>
+            <th>Mean credibility</th>
+            <th>Low-credibility hits</th>
+          </tr>
+        </thead>
+        <tbody id="domains-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // Credibility is scored 0-2 (R3); mirrors dashboard.ts's
+    // LOW_CREDIBILITY_THRESHOLD so the client's own running domain table
+    // (updated from live SSE events) agrees with the server's /api/summary
+    // snapshot it was seeded from.
+    var LOW_CREDIBILITY_THRESHOLD = 1.0;
+    var MAX_ERROR_STREAK = 5;
+
+    var feedEl = document.getElementById("feed");
+    var tickerEl = document.getElementById("ticker");
+    var domainsBody = document.getElementById("domains-body");
+    var banner = document.getElementById("banner");
+
+    // --- State ---------------------------------------------------------
+
+    var totalCostUsd = 0;
+    var jevCallCount = 0;
+    /** Sequence id already reflected in the /api/summary snapshot; SSE
+     * events at or below this id must not be re-added to the running
+     * totals (they're already counted), but are still rendered in the
+     * feed panel, which always reflects everything the client has seen. */
+    var summaryLastEventId = 0;
+    var seenIds = Object.create(null);
+
+    /** domain -> { judgments, sumCredibility, lowCredibilityHits } */
+    var domains = Object.create(null);
+
+    /** search_id -> { query, goal, children: LedgerEvent[] } */
+    var searches = Object.create(null);
+    /** search_ids, most-recently-seen group first. */
+    var searchOrder = [];
+
+    // --- DOM helpers: textContent / createElement ONLY. No HTML-string
+    // based DOM insertion anywhere in this file — every string below this
+    // line that can contain backend-derived data goes through
+    // .textContent. --------------------------------------------------
+
+    function clearChildren(node) {
+      while (node.firstChild) node.removeChild(node.firstChild);
+    }
+
+    function textEl(tag, className, text) {
+      var el = document.createElement(tag);
+      if (className) el.className = className;
+      if (text !== undefined && text !== null) el.textContent = String(text);
+      return el;
+    }
+
+    function badge(text) {
+      return textEl("span", "badge", text);
+    }
+
+    function asString(v, fallback) {
+      return typeof v === "string" && v.length > 0 ? v : fallback;
+    }
+
+    function asNumber(v) {
+      return typeof v === "number" && isFinite(v) ? v : undefined;
+    }
+
+    function makeBar(label, fraction) {
+      var wrap = textEl("div", "bar-row");
+      var pct = Math.max(0, Math.min(1, fraction)) * 100;
+      wrap.appendChild(textEl("span", "bar-label", label));
+      var track = textEl("div", "bar-track");
+      var fill = textEl("div", "bar-fill");
+      fill.style.width = pct.toFixed(0) + "%";
+      track.appendChild(fill);
+      wrap.appendChild(track);
+      wrap.appendChild(textEl("span", "bar-value", pct.toFixed(0) + "%"));
+      return wrap;
+    }
+
+    // --- Feed rendering --------------------------------------------------
+
+    function renderResultRow(payload) {
+      var row = textEl("div", "row result-row");
+      var title = asString(payload.title, asString(payload.url, "(unknown result)"));
+      row.appendChild(textEl("div", "row-title", title));
+      var domain = asString(payload.domain, undefined);
+      if (domain) row.appendChild(textEl("div", "row-domain", domain));
+
+      if (payload.budget_exhausted === true) {
+        row.appendChild(badge("budget exhausted"));
+      } else if (payload.scored !== true) {
+        row.appendChild(badge("unscored"));
+      } else {
+        var relevance = asNumber(payload.relevance);
+        var credibility = asNumber(payload.credibility);
+        var worthFetching = asNumber(payload.worth_fetching);
+        if (relevance !== undefined) row.appendChild(makeBar("relevance", relevance / 2));
+        if (credibility !== undefined) row.appendChild(makeBar("credibility", credibility / 2));
+        if (worthFetching !== undefined) row.appendChild(makeBar("worth fetching", worthFetching));
+      }
+      return row;
+    }
+
+    function renderGateRow(payload) {
+      var row = textEl("div", "row gate-row");
+      var label = asString(payload.title, asString(payload.url, asString(payload.domain, "(unknown)")));
+      row.appendChild(textEl("div", "row-title strikethrough", label));
+      var reasons = [];
+      if (Array.isArray(payload.reasons)) {
+        reasons = payload.reasons.filter(function (r) { return typeof r === "string"; });
+      } else if (typeof payload.reason === "string") {
+        reasons = [payload.reason];
+      }
+      if (reasons.length > 0) {
+        row.appendChild(textEl("div", "row-reasons", "gate: " + reasons.join("; ")));
+      }
+      return row;
+    }
+
+    function renderFetchRow(payload) {
+      var row = textEl("div", "row fetch-row");
+      var label = asString(payload.finalUrl, asString(payload.url, "(unknown url)"));
+      row.appendChild(textEl("div", "row-title", label));
+
+      if (payload.budget_exhausted === true) {
+        row.appendChild(badge("budget exhausted"));
+      } else if (payload.scored !== true) {
+        row.appendChild(badge("unscored"));
+      } else {
+        var parts = [];
+        if (typeof payload.content_class === "string") parts.push("class: " + payload.content_class);
+        var answered = asNumber(payload.answered);
+        if (answered !== undefined) parts.push("answered: " + Math.round(answered * 100) + "%");
+        var steeringRisk = asNumber(payload.steering_risk);
+        if (steeringRisk !== undefined) parts.push("steering risk: " + Math.round(steeringRisk * 100) + "%");
+        if (parts.length > 0) row.appendChild(textEl("div", "row-meta", parts.join(" · ")));
+      }
+      return row;
+    }
+
+    function renderGenericRow(record) {
+      return textEl("div", "row generic-row", record.type);
+    }
+
+    function ensureGroup(searchId) {
+      var g = searches[searchId];
+      if (!g) {
+        g = { query: null, goal: null, children: [] };
+        searches[searchId] = g;
+        searchOrder.unshift(searchId);
+      }
+      return g;
+    }
+
+    function handleFeedEvent(record) {
+      if (typeof record.search_id !== "string") return;
+      var g = ensureGroup(record.search_id);
+      if (record.type === "search") {
+        var payload = record.payload || {};
+        g.query = asString(payload.query, null);
+        g.goal = asString(payload.goal, null);
+      } else {
+        g.children.push(record);
+      }
+      renderFeed();
+    }
+
+    function renderGroupHeader(g) {
+      var header = textEl("div", "group-header");
+      header.appendChild(textEl("span", "group-query", g.query || "(no query)"));
+      if (g.goal) header.appendChild(textEl("span", "group-goal", "goal: " + g.goal));
+      return header;
+    }
+
+    function renderFeed() {
+      clearChildren(feedEl);
+      if (searchOrder.length === 0) {
+        feedEl.appendChild(textEl("p", "empty-state", "no research activity yet"));
+        return;
+      }
+      for (var i = 0; i < searchOrder.length; i++) {
+        var g = searches[searchOrder[i]];
+        var groupEl = textEl("div", "search-group");
+        groupEl.appendChild(renderGroupHeader(g));
+        var childrenEl = textEl("div", "group-children");
+        for (var j = 0; j < g.children.length; j++) {
+          var record = g.children[j];
+          var payload = record.payload || {};
+          if (record.type === "result") childrenEl.appendChild(renderResultRow(payload));
+          else if (record.type === "gate") childrenEl.appendChild(renderGateRow(payload));
+          else if (record.type === "fetch") childrenEl.appendChild(renderFetchRow(payload));
+          else childrenEl.appendChild(renderGenericRow(record));
+        }
+        groupEl.appendChild(childrenEl);
+        feedEl.appendChild(groupEl);
+      }
+    }
+
+    // --- Ticker rendering --------------------------------------------------
+
+    function renderTicker() {
+      clearChildren(tickerEl);
+      tickerEl.appendChild(textEl("span", "ticker-cost", "$" + totalCostUsd.toFixed(4)));
+      tickerEl.appendChild(document.createTextNode(" / "));
+      var label = jevCallCount === 1 ? " call" : " calls";
+      tickerEl.appendChild(textEl("span", "ticker-calls", jevCallCount + label));
+    }
+
+    // --- Domain table rendering --------------------------------------------
+
+    function domainRows() {
+      var rows = [];
+      for (var domain in domains) {
+        if (!Object.prototype.hasOwnProperty.call(domains, domain)) continue;
+        var stats = domains[domain];
+        rows.push({
+          domain: domain,
+          judgments: stats.judgments,
+          meanCredibility: stats.judgments === 0 ? 0 : stats.sumCredibility / stats.judgments,
+          lowCredibilityHits: stats.lowCredibilityHits,
+        });
+      }
+      rows.sort(function (a, b) {
+        return b.lowCredibilityHits - a.lowCredibilityHits || b.judgments - a.judgments;
+      });
+      return rows;
+    }
+
+    function renderDomainsTable() {
+      clearChildren(domainsBody);
+      var rows = domainRows();
+      if (rows.length === 0) {
+        var tr = document.createElement("tr");
+        var td = textEl("td", "empty-state", "no domains judged yet");
+        td.colSpan = 4;
+        tr.appendChild(td);
+        domainsBody.appendChild(tr);
+        return;
+      }
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var row = document.createElement("tr");
+        row.appendChild(textEl("td", null, r.domain));
+        row.appendChild(textEl("td", null, r.judgments));
+        row.appendChild(textEl("td", null, r.meanCredibility.toFixed(2)));
+        row.appendChild(textEl("td", null, r.lowCredibilityHits));
+        domainsBody.appendChild(row);
+      }
+    }
+
+    function applyDomainUpdate(payload) {
+      var domain = asString(payload.domain, undefined);
+      var credibility = asNumber(payload.credibility);
+      if (domain === undefined || credibility === undefined) return;
+      var stats = domains[domain] || { judgments: 0, sumCredibility: 0, lowCredibilityHits: 0 };
+      stats.judgments += 1;
+      stats.sumCredibility += credibility;
+      if (credibility < LOW_CREDIBILITY_THRESHOLD) stats.lowCredibilityHits += 1;
+      domains[domain] = stats;
+    }
+
+    // --- SSE wiring ----------------------------------------------------
+
+    var es = null;
+    var errorStreak = 0;
+
+    function showSessionEndedBanner() {
+      banner.textContent = "session ended";
+      banner.hidden = false;
+    }
+
+    function handleStreamEvent(record, id) {
+      var isNew = !(id in seenIds);
+      if (isNew) seenIds[id] = true;
+      if (!isNew) return;
+
+      handleFeedEvent(record);
+
+      var alreadyCounted = isFinite(id) && id <= summaryLastEventId;
+      if (alreadyCounted) return;
+
+      if (record.jev && typeof record.jev.cost_usd === "number") {
+        totalCostUsd += record.jev.cost_usd;
+        jevCallCount += 1;
+      }
+      if (record.type === "result") applyDomainUpdate(record.payload || {});
+      renderTicker();
+      renderDomainsTable();
+    }
+
+    function connectSSE() {
+      es = new EventSource("/events");
+      es.onopen = function () {
+        errorStreak = 0;
+      };
+      es.onmessage = function (ev) {
+        errorStreak = 0;
+        var id = Number(ev.lastEventId);
+        var record;
+        try {
+          record = JSON.parse(ev.data);
+        } catch (e) {
+          return;
+        }
+        handleStreamEvent(record, id);
+      };
+      es.onerror = function () {
+        errorStreak += 1;
+        if (errorStreak >= MAX_ERROR_STREAK) {
+          es.close();
+          showSessionEndedBanner();
+        }
+      };
+    }
+
+    // --- Initial paint ---------------------------------------------------
+
+    function applySummary(summary) {
+      summaryLastEventId = asNumber(summary.lastEventId) || 0;
+      totalCostUsd = asNumber(summary.totalCostUsd) || 0;
+      jevCallCount = asNumber(summary.jevCallCount) || 0;
+      var rows = Array.isArray(summary.domains) ? summary.domains : [];
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var domain = asString(row.domain, undefined);
+        if (domain === undefined) continue;
+        var judgments = asNumber(row.judgments) || 0;
+        var meanCredibility = asNumber(row.meanCredibility) || 0;
+        domains[domain] = {
+          judgments: judgments,
+          sumCredibility: meanCredibility * judgments,
+          lowCredibilityHits: asNumber(row.lowCredibilityHits) || 0,
+        };
+      }
+    }
+
+    function init() {
+      renderTicker();
+      renderDomainsTable();
+      renderFeed();
+
+      fetch("/api/summary")
+        .then(function (res) { return res.json(); })
+        .then(function (summary) {
+          applySummary(summary);
+          renderTicker();
+          renderDomainsTable();
+        })
+        .catch(function () {
+          // Fall back to zeroed state; SSE below still tries to connect.
+        })
+        .then(connectSSE);
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>

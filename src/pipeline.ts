@@ -232,10 +232,12 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
         type: "result",
         payload: {
           url: result.url,
+          title: result.title,
           domain: result.domain,
           rank,
           cache_hit: outcome.cacheHit,
           scored: gate.scored,
+          budget_exhausted: outcome.budgetExhausted ?? false,
           action: gate.action,
           ...(outcome.judgment
             ? {
