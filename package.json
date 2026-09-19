@@ -1,0 +1,21 @@
+{
+  "name": "jev-scout",
+  "version": "0.1.0",
+  "description": "MCP stdio server exposing guarded_search, guarded_fetch, and research_report: Jev-scored web research observability for agents",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30",
+    "zod": "^3.25",
+    "jev-client": "file:../jev-client"
+  },
+  "devDependencies": {
+    "typescript": "^5.9",
+    "@types/node": "^22.0.0"
+  }
+}
