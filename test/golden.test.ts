@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 import { JevClient, type JevAnswer, type JevRequest, type Provider } from "jev-client";
 
@@ -9,7 +11,16 @@ import { JevClient, type JevAnswer, type JevRequest, type Provider } from "jev-c
 type RawDecision = Awaited<ReturnType<Provider["decide"]>>;
 
 import { createJudge, RUBRIC_VERSION } from "../src/judge.ts";
-import { loadGoldenSet, runAccuracy, type GoldenItem } from "../src/drift.ts";
+import {
+  loadGoldenSet,
+  runAccuracy,
+  compareToBaseline,
+  resolveDriftAction,
+  DRIFT_THRESHOLD,
+  type GoldenItem,
+  type AccuracyReport,
+  type Baseline,
+} from "../src/drift.ts";
 
 const GOLDEN_PATH = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -280,4 +291,197 @@ test("runAccuracy over the real golden fixture in mock mode produces a full repo
   assert.equal(report.summary.rubric_version, RUBRIC_VERSION);
   assert.ok(report.summary.relevance_accuracy >= 0 && report.summary.relevance_accuracy <= 1);
   assert.ok(report.summary.credibility_accuracy >= 0 && report.summary.credibility_accuracy <= 1);
+});
+
+// ---------------------------------------------------------------------------
+// Drift-action decision (U8) — pure function, no filesystem, no process spawn
+// ---------------------------------------------------------------------------
+
+test("resolveDriftAction: no baseline => write_baseline", () => {
+  const action = resolveDriftAction(false, undefined, RUBRIC_VERSION);
+  assert.deepEqual(action, { kind: "write_baseline" });
+});
+
+test("resolveDriftAction: baseline exists, rubric_version matches => report", () => {
+  const action = resolveDriftAction(true, RUBRIC_VERSION, RUBRIC_VERSION);
+  assert.deepEqual(action, { kind: "report" });
+});
+
+test("resolveDriftAction: baseline exists, rubric_version mismatched => rebaseline_required", () => {
+  const action = resolveDriftAction(true, "0.9.0", RUBRIC_VERSION);
+  assert.deepEqual(action, {
+    kind: "rebaseline_required",
+    baselineRubricVersion: "0.9.0",
+    currentRubricVersion: RUBRIC_VERSION,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// compareToBaseline math — known fixtures: one drifted item, one stable item
+// ---------------------------------------------------------------------------
+
+function makeAccuracyReport(
+  items: ReadonlyArray<{ id: string; relevance: number; credibility: number }>,
+  rubricVersion: string = RUBRIC_VERSION,
+): AccuracyReport {
+  return {
+    items: items.map((i) => ({
+      id: i.id,
+      expected: { relevance_band: [0, 2] as const, credibility_level: 1 },
+      actual: { relevance: i.relevance, credibility: i.credibility },
+      relevance_hit: true,
+      credibility_hit: true,
+      confidence: 0.8,
+    })),
+    summary: {
+      n: items.length,
+      relevance_accuracy: 1,
+      credibility_accuracy: 1,
+      mean_confidence: 0.8,
+      rubric_version: rubricVersion,
+    },
+  };
+}
+
+test("compareToBaseline: flags an item whose delta exceeds the threshold, leaves a stable item undrifted", () => {
+  const baseline: Baseline = {
+    rubric_version: RUBRIC_VERSION,
+    written_at: "2026-01-01T00:00:00.000Z",
+    report: makeAccuracyReport([
+      { id: "stable-item", relevance: 1.5, credibility: 1.5 },
+      { id: "drifted-item", relevance: 2.0, credibility: 2.0 },
+    ]),
+  };
+
+  const current = makeAccuracyReport([
+    // Delta of 0.1 on both scores — well under DRIFT_THRESHOLD (0.25).
+    { id: "stable-item", relevance: 1.6, credibility: 1.4 },
+    // Relevance delta of exactly -0.5 — clears DRIFT_THRESHOLD.
+    { id: "drifted-item", relevance: 1.5, credibility: 2.0 },
+  ]);
+
+  const drift = compareToBaseline(current, baseline);
+
+  const byId = Object.fromEntries(drift.items.map((i) => [i.id, i]));
+  assert.equal(byId["stable-item"]!.drifted, false);
+  assert.ok(Math.abs(byId["stable-item"]!.relevance_delta - 0.1) < 1e-9);
+  assert.ok(Math.abs(byId["stable-item"]!.credibility_delta - -0.1) < 1e-9);
+
+  assert.equal(byId["drifted-item"]!.drifted, true);
+  assert.ok(Math.abs(byId["drifted-item"]!.relevance_delta - -0.5) < 1e-9);
+  assert.equal(byId["drifted-item"]!.credibility_delta, 0);
+
+  assert.equal(drift.summary.items_drifted, 1);
+  assert.ok(Math.abs(drift.summary.max_delta - 0.5) < 1e-9);
+  assert.equal(drift.summary.rubric_version_match, true);
+});
+
+test("compareToBaseline: an item exactly at the threshold is NOT flagged (strictly greater-than)", () => {
+  const baseline: Baseline = {
+    rubric_version: RUBRIC_VERSION,
+    written_at: "2026-01-01T00:00:00.000Z",
+    report: makeAccuracyReport([{ id: "edge-item", relevance: 1.0, credibility: 1.0 }]),
+  };
+  const current = makeAccuracyReport([
+    { id: "edge-item", relevance: 1.0 + DRIFT_THRESHOLD, credibility: 1.0 },
+  ]);
+
+  const drift = compareToBaseline(current, baseline);
+  assert.equal(drift.items[0]!.drifted, false, "exactly at the threshold is not > threshold");
+  assert.equal(drift.summary.items_drifted, 0);
+});
+
+test("compareToBaseline: rubric_version_match reflects a mismatch between baseline and report", () => {
+  const baseline: Baseline = {
+    rubric_version: "0.9.0",
+    written_at: "2026-01-01T00:00:00.000Z",
+    report: makeAccuracyReport([{ id: "a", relevance: 1, credibility: 1 }]),
+  };
+  const current = makeAccuracyReport([{ id: "a", relevance: 1, credibility: 1 }], RUBRIC_VERSION);
+
+  const drift = compareToBaseline(current, baseline);
+  assert.equal(drift.summary.rubric_version_match, false);
+});
+
+test("compareToBaseline: items absent from the baseline are skipped, not crashed on", () => {
+  const baseline: Baseline = {
+    rubric_version: RUBRIC_VERSION,
+    written_at: "2026-01-01T00:00:00.000Z",
+    report: makeAccuracyReport([{ id: "known", relevance: 1, credibility: 1 }]),
+  };
+  const current = makeAccuracyReport([
+    { id: "known", relevance: 1, credibility: 1 },
+    { id: "new-item-not-in-baseline", relevance: 2, credibility: 2 },
+  ]);
+
+  const drift = compareToBaseline(current, baseline);
+  assert.equal(drift.items.length, 1);
+  assert.equal(drift.items[0]!.id, "known");
+});
+
+// ---------------------------------------------------------------------------
+// Two-part report shape (accuracy + drift), mock mode, canned baseline file
+// in a tmp dir — no network, no process spawn.
+// ---------------------------------------------------------------------------
+
+test("mock-mode two-part report (accuracy + drift) reads a canned baseline.json from a tmp dir", async () => {
+  const tmpDir = await mkdtemp(join(tmpdir(), "jev-scout-drift-test-"));
+  const baselinePath = join(tmpDir, "baseline.json");
+
+  try {
+    const set = await loadGoldenSet(GOLDEN_PATH);
+    const first = set.slice(0, 3);
+
+    // First "run": canned scores that become the baseline.
+    const baselineByDomain: Record<string, CannedByDomain> = {};
+    for (const item of first) {
+      baselineByDomain[item.result.domain] = {
+        relevanceScore: 1.0,
+        relevanceConfidence: 0.7,
+        credibilityScore: 1.0,
+        credibilityConfidence: 0.7,
+      };
+    }
+    const baselineProvider = new DomainSpyProvider(baselineByDomain);
+    const baselineJudge = createJudge(new JevClient({ provider: baselineProvider, warnOnMock: false }));
+    const baselineReport = await runAccuracy(baselineJudge, first);
+
+    const canned: Baseline = {
+      rubric_version: RUBRIC_VERSION,
+      written_at: "2026-01-01T00:00:00.000Z",
+      report: baselineReport,
+    };
+    await writeFile(baselinePath, JSON.stringify(canned, null, 2), "utf8");
+
+    // Second "run": scores shifted for the first item only, to produce one
+    // drifted item alongside stable ones.
+    const currentByDomain: Record<string, CannedByDomain> = { ...baselineByDomain };
+    const shiftedDomain = first[0]!.result.domain;
+    currentByDomain[shiftedDomain] = {
+      relevanceScore: 1.0 + DRIFT_THRESHOLD + 0.1,
+      relevanceConfidence: 0.7,
+      credibilityScore: 1.0,
+      credibilityConfidence: 0.7,
+    };
+    const currentProvider = new DomainSpyProvider(currentByDomain);
+    const currentJudge = createJudge(new JevClient({ provider: currentProvider, warnOnMock: false }));
+    const currentReport = await runAccuracy(currentJudge, first);
+
+    // Read the canned baseline back off disk, exactly as main() would.
+    const loadedRaw = await readFile(baselinePath, "utf8");
+    const loadedBaseline = JSON.parse(loadedRaw) as Baseline;
+
+    const drift = compareToBaseline(currentReport, loadedBaseline);
+    const twoPartReport = { accuracy: currentReport, drift };
+
+    // Shape assertions — both halves present, well-formed, no network involved.
+    assert.ok(twoPartReport.accuracy.summary);
+    assert.ok(twoPartReport.drift.summary);
+    assert.equal(twoPartReport.accuracy.summary.rubric_version, RUBRIC_VERSION);
+    assert.equal(twoPartReport.drift.summary.rubric_version_match, true);
+    assert.equal(twoPartReport.drift.items.length, first.length);
+    assert.ok(twoPartReport.drift.summary.items_drifted >= 1, "the shifted domain should register as drifted");
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
 });
