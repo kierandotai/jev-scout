@@ -59,6 +59,14 @@ const scoreJudgmentSchema = z.object({
 
 const noulJudgmentSchema = z.object({ probability: z.number() });
 
+/** Query-level on_task judgment. Mirrors pipeline.ts's SearchOnTask. */
+const onTaskSchema = z.object({
+  scored: z.boolean(),
+  budget_exhausted: z.boolean().optional(),
+  /** Present only when `scored` is true. */
+  probability: z.number().optional(),
+});
+
 const choiceJudgmentSchema = z.object({
   choice: z.string(),
   confidence: z.number(),
@@ -121,6 +129,8 @@ export const guardedSearchOutputShape = {
   ),
   /** Every gate-dropped result (threshold drops and beyond-cap truncation), gate mode only. */
   dropped: z.array(droppedResultSchema),
+  /** Query-level on_task judgment. Only present when `goal` was supplied. */
+  on_task: onTaskSchema.optional(),
   budget: budgetStateSchema.optional(),
 };
 
@@ -484,10 +494,11 @@ export function buildServer(deps: ServerDeps): McpServer {
       title: "Guarded search",
       description:
         "Search the web and return results annotated with Jev judgments: relevance (0-2), " +
-        "credibility (0-2) and worth_fetching (probability), each with confidence. In gate mode, " +
-        "results below the configured thresholds are dropped (see the `dropped` field). Results " +
-        "marked scored:false were delivered unjudged (Jev failure or budget exhaustion) — treat " +
-        "their quality as unknown. " +
+        "credibility (0-2) and worth_fetching (probability), each with confidence; when `goal` is " +
+        "supplied, the query itself is also judged for on_task (is this query on task for the goal, " +
+        "see the `on_task` field). In gate mode, results below the configured thresholds are dropped " +
+        "(see the `dropped` field). Results marked scored:false (and an on_task with scored:false) " +
+        "were delivered unjudged (Jev failure or budget exhaustion) — treat their quality as unknown. " +
         modeAndThresholdsNote(config),
       inputSchema: guardedSearchInputShape,
       outputSchema: guardedSearchOutputShape,
@@ -510,6 +521,7 @@ export function buildServer(deps: ServerDeps): McpServer {
               backends_tried: result.backends_tried,
               results: result.results,
               dropped: result.dropped,
+              ...(result.on_task === undefined ? {} : { on_task: result.on_task }),
               ...(budgetField === undefined ? {} : { budget: budgetField }),
             });
           } catch (err) {

@@ -248,16 +248,10 @@ compares it to a pinned baseline:
 
 | Scope | Cost |
 |---|---|
-| Per search (default `JEV_SCOUT_MAX_JUDGED=8`) | Up to 8 Jev calls — one per judged result (capped at `JEV_SCOUT_MAX_JUDGED`, cache hits make no call at all) ≈ $0.0001 total at the default cap |
+| Per search (default `JEV_SCOUT_MAX_JUDGED=8`) | Up to 9 Jev calls — one per judged result (capped at `JEV_SCOUT_MAX_JUDGED`, cache hits make no call at all) plus, when `goal` is supplied, one query-level `judgeQuery`/`on_task` call ("is this search on task for the goal") ≈ $0.0001 total at the default cap |
 | Per fetch | 1 Jev call (answered + content_class + steering_risk in one call), skipped on budget exhaustion |
 | Per session (defaults: 300 calls / $0.05) | Capped at whichever limit fires first — the call cap, in practice |
 | Dashboard | Free — it's a local static HTML page over SSE, no external calls |
-
-`judge.ts` also defines `judgeQuery`/`on_task` (a query-level "is this search
-on task for the goal" judgment) — it exists as a documented, tested part of
-the `Judge` interface, but `pipeline.ts`'s `runSearch` does not currently call
-it. No query-level Jev call happens per search today; the cost table above
-reflects only the per-result and per-fetch calls the pipeline actually makes.
 
 ## Known jaggedness
 
