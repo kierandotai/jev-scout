@@ -107,6 +107,8 @@ export interface AccuracyReport {
 
 export interface RunAccuracyOptions {
   readonly signal?: AbortSignal;
+  /** Delay between items (ms); also settable via DRIFT_PACE_MS. Default 0. */
+  readonly paceMs?: number;
 }
 
 /**
@@ -120,20 +122,41 @@ export async function runAccuracy(
   opts: RunAccuracyOptions = {},
 ): Promise<AccuracyReport> {
   const items: AccuracyItemResult[] = [];
+  // Free-tier gateway access rate-limits Jev per minute; pace items and wait
+  // out 429s patiently instead of failing the whole run partway through.
+  const paceMs = opts.paceMs ?? Number(process.env.DRIFT_PACE_MS ?? 0);
+  const waits = [30_000, 60_000, 90_000];
 
+  let first = true;
   for (const item of goldenSet) {
-    const judgment = await judge.judgeResult(
-      {
-        goal: item.goal,
-        query: item.query,
-        result: {
-          title: item.result.title,
-          snippet: item.result.snippet,
-          domain: item.result.domain,
-        },
+    if (!first && paceMs > 0) await new Promise((r) => setTimeout(r, paceMs));
+    first = false;
+
+    const input = {
+      goal: item.goal,
+      query: item.query,
+      result: {
+        title: item.result.title,
+        snippet: item.result.snippet,
+        domain: item.result.domain,
       },
-      opts.signal === undefined ? {} : { signal: opts.signal },
-    );
+    };
+    const callOpts = opts.signal === undefined ? {} : { signal: opts.signal };
+    let judgment;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        judgment = await judge.judgeResult(input, callOpts);
+        break;
+      } catch (err) {
+        const status = err instanceof Error && "status" in err ? (err as { status?: number }).status : undefined;
+        if (status === 429 && attempt < waits.length) {
+          process.stderr.write(`[drift] rate-limited on ${item.id}; waiting ${waits[attempt]! / 1000}s\n`);
+          await new Promise((r) => setTimeout(r, waits[attempt]));
+          continue;
+        }
+        throw err;
+      }
+    }
 
     const [min, max] = item.labels.relevance_band;
     const relevance_hit = judgment.relevance.score >= min && judgment.relevance.score <= max;

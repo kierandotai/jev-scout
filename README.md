@@ -211,6 +211,9 @@ even before exhaustion.
 
 ## Golden set & drift
 
+> **Free-tier pacing:** the Vercel AI Gateway free window rate-limits Jev with a small, slowly-refilling quota — bursts make it worse. Run the checkpoint paced: `DRIFT_PACE_MS=60000 npm run drift` (~30 min for 25 items). Paid credits or OpenRouter remove the need for pacing.
+
+
 ```sh
 npm run drift
 ```
