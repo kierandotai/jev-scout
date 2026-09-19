@@ -159,7 +159,13 @@ export async function runAccuracy(
     }
 
     const [min, max] = item.labels.relevance_band;
-    const relevance_hit = judgment.relevance.score >= min && judgment.relevance.score <= max;
+    // Jev returns probability-weighted scores (1.96 means "level 2, 96% sure").
+    // Round to the nearest rubric level before band comparison — comparing the
+    // continuous score against exact integer bands scores correct judgments as
+    // misses (TypeSafe's own "don't interpolate thresholds" jaggedness note,
+    // which the first live run demonstrated against this very harness).
+    const relevanceLevel = Math.round(judgment.relevance.score);
+    const relevance_hit = relevanceLevel >= min && relevanceLevel <= max;
     const credibility_hit =
       Math.round(judgment.credibility.score) === item.labels.credibility_level;
     const confidence = (judgment.relevance.confidence + judgment.credibility.confidence) / 2;
