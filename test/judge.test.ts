@@ -329,13 +329,13 @@ test("blank goal is treated as absent by judgeResult and judgePage", async () =>
 test("rubric levels are the pinned observable-signal wording", async () => {
   assert.deepEqual(RELEVANCE_LEVELS, [
     "different topic",
-    "same general topic, exact entity absent",
-    "mentions the exact entity or claim from the goal in title or snippet",
+    "same general topic or names the exact entity, but is not itself what the goal asks for (e.g. a discussion about the thing when the goal asks for the thing's official docs)",
+    "is the document type or answer the goal asks for — the documentation, primary source, or guide itself — and names the exact entity or claim from the goal",
   ]);
   assert.deepEqual(CREDIBILITY_LEVELS, [
     "SEO content-farm patterns: listicle title, keyword-stuffed snippet, aggregator domain",
     "personal blog, forum thread, or unaffiliated commentary",
-    "official documentation domain, standards body, primary source or first-party announcement",
+    "official documentation domain, standards body, primary source or first-party announcement, including first-party product documentation subdomains (docs.*, developer.*, code.* hosted by the product's own company)",
   ]);
   assert.deepEqual(Object.keys(PAGE_CONTENT_CLASSES), [
     "docs",

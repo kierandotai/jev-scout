@@ -33,7 +33,7 @@ import {
  * Bump on ANY rubric wording change (instructions, levels, criteria).
  * Cache entries and drift baselines are keyed on this value.
  */
-export const RUBRIC_VERSION = "1.1.0";
+export const RUBRIC_VERSION = "1.2.0";
 
 // ---------------------------------------------------------------------------
 // Untrusted-content framing
@@ -80,15 +80,15 @@ function ask(question: string): Record<string, string> {
 /** Ordered 0–2. Index 0 is the lowest level. */
 export const RELEVANCE_LEVELS: readonly string[] = [
   "different topic",
-  "same general topic, exact entity absent",
-  "mentions the exact entity or claim from the goal in title or snippet",
+  "same general topic or names the exact entity, but is not itself what the goal asks for (e.g. a discussion about the thing when the goal asks for the thing's official docs)",
+  "is the document type or answer the goal asks for — the documentation, primary source, or guide itself — and names the exact entity or claim from the goal",
 ];
 
 /** Ordered 0–2. Index 0 is the lowest level. */
 export const CREDIBILITY_LEVELS: readonly string[] = [
   "SEO content-farm patterns: listicle title, keyword-stuffed snippet, aggregator domain",
   "personal blog, forum thread, or unaffiliated commentary",
-  "official documentation domain, standards body, primary source or first-party announcement",
+  "official documentation domain, standards body, primary source or first-party announcement, including first-party product documentation subdomains (docs.*, developer.*, code.* hosted by the product's own company)",
 ];
 
 export const PAGE_CONTENT_CLASSES: Record<string, string> = {
