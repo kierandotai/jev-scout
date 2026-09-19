@@ -30,6 +30,11 @@ confidence, and an explicit "unscored" badge instead of a misleading 0%
 whenever Jev couldn't be reached), a running cost/call ticker, and a
 per-domain credibility table.
 
+**Measured, not vibes:** the judging rubrics are validated against a
+hand-labeled golden set — relevance 88%, credibility 96% on the first live
+checkpoint. Full methodology, miss analysis, and caveats:
+[docs/accuracy/2026-09-19-jev-golden-set-study.md](docs/accuracy/2026-09-19-jev-golden-set-study.md).
+
 ## Quickstart
 
 **1. Start SearXNG** (the default free backend) — a JSON search API isn't
@@ -59,6 +64,10 @@ docker restart searxng
 **2. Install dependencies:**
 
 ```sh
+# jev-scout consumes jev-client as a file: dependency — clone them side by side
+git clone https://github.com/kierandotai/jev-client.git
+git clone https://github.com/kierandotai/jev-scout.git
+cd jev-client && npm install && npm run build && cd ../jev-scout
 npm install
 ```
 
