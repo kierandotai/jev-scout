@@ -32,7 +32,7 @@ import {
   type ResultJudgment,
   type ScoreJudgment,
 } from "./judge.ts";
-import type { Budget, BudgetState } from "./budget.ts";
+import { budgetFieldIfOver80, type Budget, type BudgetState } from "./budget.ts";
 import type { ScoreCache } from "./cache.ts";
 import type { Ledger } from "./ledger.ts";
 import {
@@ -129,11 +129,6 @@ export type RunFetchResult = FetchRefused | FetchDelivered;
 export interface Pipeline {
   runSearch(input: RunSearchInput): Promise<RunSearchResult>;
   runFetch(input: RunFetchInput): Promise<RunFetchResult>;
-}
-
-function budgetFieldIfOver80(budget: Budget): BudgetState | undefined {
-  const state = budget.state();
-  return state.over80.calls || state.over80.spend ? state : undefined;
 }
 
 export function createPipeline(deps: PipelineDeps): Pipeline {

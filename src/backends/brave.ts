@@ -1,25 +1,5 @@
 import { BackendError, SoftRateLimitError, type RawResult, type SearchBackend } from "./types.ts";
-import { dedupeResults, toRawResult } from "./resolve.ts";
-
-const TAG_RE = /<[^>]*>/g;
-const ENTITY_RE = /&[a-zA-Z#0-9]+;/g;
-const ENTITY_MAP: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&nbsp;": " ",
-};
-
-/** Strip HTML tags (Brave bolds matched terms, e.g. <strong>) and decode entities. */
-function stripHtml(input: string): string {
-  return input
-    .replace(TAG_RE, "")
-    .replace(ENTITY_RE, (entity) => ENTITY_MAP[entity] ?? entity)
-    .trim();
-}
+import { dedupeResults, stripHtml, toRawResult } from "./resolve.ts";
 
 interface BraveResult {
   title?: string;

@@ -1,24 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import * as http from "node:http";
 import { fileURLToPath } from "node:url";
 
 import { createLedger, type Ledger } from "../src/ledger.ts";
 import { startDashboard } from "../src/dashboard.ts";
+import { tmpDir } from "./support.ts";
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "jev-scout-dashboard-"));
-}
-
 function makeLedger(): Ledger {
-  return createLedger(tmpDir());
+  return createLedger(tmpDir("dashboard"));
 }
 
 interface SSEMessage {

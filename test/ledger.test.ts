@@ -1,14 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { contentHash, createLedger, type LedgerEvent } from "../src/ledger.ts";
-
-function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "jev-scout-ledger-"));
-}
+import { tmpDir } from "./support.ts";
 
 function readLines(dir: string): LedgerEvent[] {
   const files = fs.readdirSync(dir).filter((f) => f.startsWith("ledger-") && f.endsWith(".jsonl"));
@@ -21,7 +17,7 @@ function readLines(dir: string): LedgerEvent[] {
 }
 
 test("dir is created on demand and lines parse as JSON carrying search_id", () => {
-  const dir = path.join(tmpDir(), "nested", "does-not-exist-yet");
+  const dir = path.join(tmpDir("ledger"), "nested", "does-not-exist-yet");
   assert.equal(fs.existsSync(dir), false);
 
   const ledger = createLedger(dir);
@@ -41,7 +37,7 @@ test("dir is created on demand and lines parse as JSON carrying search_id", () =
 });
 
 test("page content is hashed, never logged raw — contentHash appears, raw text does not", () => {
-  const dir = tmpDir();
+  const dir = tmpDir("ledger");
   const ledger = createLedger(dir);
   const pageText = "SECRET RAW PAGE BODY that must never reach the ledger file";
   const hash = contentHash(pageText);
@@ -64,7 +60,7 @@ test("page content is hashed, never logged raw — contentHash appears, raw text
 });
 
 test("todaySpend sums jev.cost_usd across two separate createLedger instances (simulated restart)", () => {
-  const dir = tmpDir();
+  const dir = tmpDir("ledger");
 
   const first = createLedger(dir);
   first.append({
@@ -101,19 +97,19 @@ test("todaySpend sums jev.cost_usd across two separate createLedger instances (s
 });
 
 test("todaySpend is 0 before any events (file does not exist yet)", () => {
-  const ledger = createLedger(tmpDir());
+  const ledger = createLedger(tmpDir("ledger"));
   assert.equal(ledger.todaySpend(), 0);
 });
 
 test("todaySpend ignores events with no jev field", () => {
-  const dir = tmpDir();
+  const dir = tmpDir("ledger");
   const ledger = createLedger(dir);
   ledger.append({ session: "s", search_id: "id", type: "gate", payload: { action: "drop" } });
   assert.equal(ledger.todaySpend(), 0);
 });
 
 test("size guard: past the byte cap, payload is omitted but counters/fields survive", () => {
-  const dir = tmpDir();
+  const dir = tmpDir("ledger");
   // Tiny injectable cap so the guard trips almost immediately.
   const ledger = createLedger(dir, { maxBytesPerDay: 200 });
 
@@ -148,7 +144,7 @@ test("size guard: past the byte cap, payload is omitted but counters/fields surv
 });
 
 test("append emits an 'event' for each appended record, matching what was written", () => {
-  const dir = tmpDir();
+  const dir = tmpDir("ledger");
   const ledger = createLedger(dir);
   const seen: LedgerEvent[] = [];
   ledger.on("event", (record: LedgerEvent) => seen.push(record));
@@ -165,7 +161,7 @@ test("append emits an 'event' for each appended record, matching what was writte
 });
 
 test("multiple appends each emit their own event, in order", () => {
-  const dir = tmpDir();
+  const dir = tmpDir("ledger");
   const ledger = createLedger(dir);
   const seenTypes: string[] = [];
   ledger.on("event", (record: LedgerEvent) => seenTypes.push(record.type));

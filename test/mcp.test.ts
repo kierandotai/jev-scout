@@ -15,8 +15,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -41,16 +39,13 @@ import type {
   RunSearchInput,
   RunSearchResult,
 } from "../src/pipeline.ts";
+import { tmpDir } from "./support.ts";
 
 // ---------------------------------------------------------------------------
 // Harness
 // ---------------------------------------------------------------------------
 
 const DASHBOARD_URL = "http://127.0.0.1:54321";
-
-function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "jev-scout-mcp-"));
-}
 
 interface Harness {
   client: Client;
@@ -66,7 +61,7 @@ async function harness(opts: {
   config?: Config;
   dashboardUrl?: string | null;
 }): Promise<Harness> {
-  const dir = tmpDir();
+  const dir = tmpDir("mcp");
   const ledger = createLedger(dir);
   const budget =
     opts.budget ?? createBudget({ maxCalls: 300, maxSpendUsd: 0.05, maxJudgedPerSearch: 8 });

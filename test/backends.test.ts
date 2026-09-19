@@ -12,14 +12,7 @@ import {
   toRawResult,
 } from "../src/backends/resolve.ts";
 import { loadConfig, type Config } from "../src/config.ts";
-
-function withStubbedFetch<T>(impl: typeof fetch, run: () => Promise<T>): Promise<T> {
-  const original = globalThis.fetch;
-  globalThis.fetch = impl;
-  return run().finally(() => {
-    globalThis.fetch = original;
-  });
-}
+import { withStubbedFetch } from "./support.ts";
 
 function baseConfig(overrides: Partial<Record<string, string>> = {}): Config {
   // Deliberately does NOT inherit process.env — keeps backend-resolution

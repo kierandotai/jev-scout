@@ -54,6 +54,17 @@ export interface Budget {
 
 const OVER80_FRACTION = 0.8;
 
+/**
+ * The remaining-budget fields to ride along on a tool response, once usage
+ * has crossed 80% of any limit (R5) — `undefined` otherwise. Shared by
+ * pipeline.ts (search/fetch results) and server-mcp.ts (recomputed from the
+ * live budget so the two can never disagree).
+ */
+export function budgetFieldIfOver80(budget: Budget): BudgetState | undefined {
+  const state = budget.state();
+  return state.over80.calls || state.over80.spend ? state : undefined;
+}
+
 export function createBudget(limits: BudgetLimits): Budget {
   let callsUsed = 0;
   let spendUsd = 0;

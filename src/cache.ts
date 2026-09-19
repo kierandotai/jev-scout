@@ -15,7 +15,7 @@
  * Nothing here is persisted to disk; the cache does not survive a restart.
  */
 
-import { createHash } from "node:crypto";
+import { sha256Hex } from "./hash.ts";
 
 /** A cached judgment: raw scores only. Gate thresholds apply at read time. */
 export interface CacheEntry<TScores = Record<string, unknown>> {
@@ -44,12 +44,8 @@ export interface ScoreCache {
 const DEFAULT_RELEVANCE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_CREDIBILITY_TTL_MS = 24 * 60 * 60 * 1000;
 
-function sha256(text: string): string {
-  return createHash("sha256").update(text).digest("hex");
-}
-
 function relevanceKey(query: string, goal: string | undefined, url: string): string {
-  return `${sha256(query)}:${sha256(goal ?? "")}:${url}`;
+  return `${sha256Hex(query)}:${sha256Hex(goal ?? "")}:${url}`;
 }
 
 function credibilityKey(domain: string, rubricVersion: string): string {

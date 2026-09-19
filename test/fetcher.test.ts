@@ -2,14 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { fetchPage, isForbiddenAddress, type LookupFn } from "../src/fetcher.ts";
-
-function withStubbedFetch<T>(impl: typeof fetch, run: () => Promise<T>): Promise<T> {
-  const original = globalThis.fetch;
-  globalThis.fetch = impl;
-  return run().finally(() => {
-    globalThis.fetch = original;
-  });
-}
+import { withStubbedFetch } from "./support.ts";
 
 function htmlResponse(body: string, status = 200): Response {
   return new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8" } });

@@ -20,11 +20,12 @@
  * `createLedger()` time — and is injectable so tests point it at a tmp dir.
  */
 
-import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+
+import { sha256Hex } from "./hash.ts";
 
 export type LedgerEventType = "search" | "result" | "fetch" | "gate" | "budget";
 
@@ -72,7 +73,7 @@ const DEFAULT_MAX_BYTES_PER_DAY = 50 * 1024 * 1024;
 
 /** sha256 hex digest — the only way page content is allowed to reach the ledger. */
 export function contentHash(text: string): string {
-  return createHash("sha256").update(text).digest("hex");
+  return sha256Hex(text);
 }
 
 function defaultDir(): string {

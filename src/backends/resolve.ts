@@ -1,6 +1,30 @@
 import type { Config } from "../config.ts";
 import type { RawResult, SearchBackend } from "./types.ts";
 
+const TAG_RE = /<[^>]*>/g;
+const ENTITY_RE = /&[a-zA-Z#0-9]+;/g;
+const ENTITY_MAP: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&apos;": "'",
+  "&nbsp;": " ",
+};
+
+/**
+ * Strip HTML tags and decode a basic set of HTML entities. Shared by backends
+ * that clean short text fragments (titles/snippets) out of JSON fields
+ * (Brave bolds matched terms, e.g. `<strong>`) or scraped HTML (DDG).
+ */
+export function stripHtml(input: string): string {
+  return input
+    .replace(TAG_RE, "")
+    .replace(ENTITY_RE, (entity) => ENTITY_MAP[entity] ?? entity)
+    .trim();
+}
+
 /**
  * Normalize a URL for identity/dedup purposes: lowercase host, strip a
  * trailing slash and fragment, keep only http(s) schemes. Returns undefined

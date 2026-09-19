@@ -1,8 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { createPipeline, type RunFetchResult } from "../src/pipeline.ts";
 import { createBudget, type Budget } from "../src/budget.ts";
@@ -11,14 +8,11 @@ import { createLedger, type LedgerEvent } from "../src/ledger.ts";
 import { loadConfig, type Config } from "../src/config.ts";
 import { RUBRIC_VERSION, type Judge, type JudgePageInput, type JudgeResultInput, type PageJudgment, type ResultJudgment } from "../src/judge.ts";
 import type { RawResult, SearchBackend } from "../src/backends/types.ts";
+import { tmpDir, withStubbedFetch } from "./support.ts";
 
 // ---------------------------------------------------------------------------
 // Test doubles
 // ---------------------------------------------------------------------------
-
-function tmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "jev-scout-pipeline-"));
-}
 
 function ddgReturning(results: RawResult[]): SearchBackend {
   return { name: "ddg", search: async () => results };
@@ -83,14 +77,6 @@ const SAMPLE: RawResult = {
   domain: "docs.example.com",
 };
 
-function withStubbedFetch<T>(impl: typeof fetch, run: () => Promise<T>): Promise<T> {
-  const original = globalThis.fetch;
-  globalThis.fetch = impl;
-  return run().finally(() => {
-    globalThis.fetch = original;
-  });
-}
-
 function htmlResponse(body: string): Response {
   return new Response(body, { status: 200, headers: { "content-type": "text/html" } });
 }
@@ -126,7 +112,7 @@ function setup(opts: {
     maxJudgedPerSearch: opts.maxJudged ?? 8,
   });
   const cache = createCache();
-  const ledger = createLedger(tmpDir());
+  const ledger = createLedger(tmpDir("pipeline"));
   const events: LedgerEvent[] = [];
   ledger.on("event", (e: LedgerEvent) => events.push(e));
 
@@ -272,7 +258,7 @@ test("gate-mode preFetchGate refuses a fetch to a domain cached below threshold,
   } as NodeJS.ProcessEnv);
   const budget = createBudget({ maxCalls: 100, maxSpendUsd: 10, maxJudgedPerSearch: 8 });
   const cache = createCache();
-  const ledger = createLedger(tmpDir());
+  const ledger = createLedger(tmpDir("pipeline"));
   const events: LedgerEvent[] = [];
   ledger.on("event", (e: LedgerEvent) => events.push(e));
 

@@ -32,8 +32,8 @@ import { pathToFileURL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { BackendChainError } from "./backends/resolve.ts";
-import type { Budget } from "./budget.ts";
+import { BackendChainError, domainFromUrl } from "./backends/resolve.ts";
+import { budgetFieldIfOver80, type Budget } from "./budget.ts";
 import type { Config } from "./config.ts";
 import type { Ledger, LedgerEvent } from "./ledger.ts";
 import type { Pipeline } from "./pipeline.ts";
@@ -281,13 +281,7 @@ function absorb(tallies: SessionTallies, event: LedgerEvent): void {
 }
 
 function domainOf(rawUrl: string | undefined): string | undefined {
-  if (rawUrl === undefined) return undefined;
-  try {
-    const host = new URL(rawUrl).hostname.toLowerCase();
-    return host.startsWith("www.") ? host.slice(4) : host;
-  } catch {
-    return undefined;
-  }
+  return rawUrl === undefined ? undefined : domainFromUrl(rawUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -385,16 +379,6 @@ export function buildServer(deps: ServerDeps): McpServer {
     { capabilities: { tools: {} } },
   );
 
-  /**
-   * Remaining-budget fields ride along on every tool response once usage
-   * crosses 80% of any limit (R5). Computed from the live budget rather than
-   * whatever the pipeline happened to attach, so the two can never disagree.
-   */
-  function budgetFieldIfOver80() {
-    const state = budget.state();
-    return state.over80.calls || state.over80.spend ? state : undefined;
-  }
-
   // -------------------------------------------------------------------------
   // guarded_search
   // -------------------------------------------------------------------------
@@ -418,7 +402,7 @@ export function buildServer(deps: ServerDeps): McpServer {
           goal,
           maxResults: max_results ?? config.maxJudged,
         });
-        const budgetField = budgetFieldIfOver80() ?? result.budget;
+        const budgetField = budgetFieldIfOver80(budget) ?? result.budget;
         return ok({
           search_id: result.search_id,
           query,
@@ -471,7 +455,7 @@ export function buildServer(deps: ServerDeps): McpServer {
         return failed(errorPayload(result.reason, result.detail));
       }
 
-      const budgetField = budgetFieldIfOver80() ?? result.budget;
+      const budgetField = budgetFieldIfOver80(budget) ?? result.budget;
       const steeringProbability = result.steering_risk?.probability;
 
       // Key order below IS the contract — judgment fields, then budget, then

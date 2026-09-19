@@ -1,5 +1,5 @@
 import { BackendError, SoftRateLimitError, type RawResult, type SearchBackend } from "./types.ts";
-import { dedupeResults, toRawResult } from "./resolve.ts";
+import { dedupeResults, stripHtml, toRawResult } from "./resolve.ts";
 
 const DDG_URL = "https://html.duckduckgo.com/html/";
 const USER_AGENT =
@@ -11,22 +11,6 @@ const TITLE_RE = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/
 const SNIPPET_RE = /<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
 
 const ANOMALY_MARKERS = ["anomaly.js", "challenge-form", "anomaly-modal"];
-
-const TAG_RE = /<[^>]*>/g;
-const ENTITY_MAP: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-};
-
-function textOf(html: string): string {
-  return html
-    .replace(TAG_RE, "")
-    .replace(/&[a-zA-Z#0-9]+;/g, (entity) => ENTITY_MAP[entity] ?? entity)
-    .trim();
-}
 
 /** Resolve a result__a href: decode the uddg redirect param, or use the href as-is. */
 function resolveHref(href: string): string | undefined {
@@ -121,11 +105,11 @@ export class DuckDuckGoBackend implements SearchBackend {
 
     const titles: { href: string; text: string }[] = [];
     for (const m of body.matchAll(TITLE_RE)) {
-      titles.push({ href: m[1] ?? "", text: textOf(m[2] ?? "") });
+      titles.push({ href: m[1] ?? "", text: stripHtml(m[2] ?? "") });
     }
     const snippets: string[] = [];
     for (const m of body.matchAll(SNIPPET_RE)) {
-      snippets.push(textOf(m[1] ?? ""));
+      snippets.push(stripHtml(m[1] ?? ""));
     }
 
     const normalized: RawResult[] = [];
