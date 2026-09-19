@@ -1,0 +1,402 @@
+[
+  {
+    "id": "typesafe-docs-01",
+    "goal": "find official docs for the TypeSafe Jev systemone API",
+    "query": "typesafe jev system one api docs",
+    "result": {
+      "title": "TypeSafe Jev API Reference — System One Decisions",
+      "url": "https://docs.typesafe.ai/api.md",
+      "snippet": "Complete reference for the /decisions endpoint: request schema, question types (noul, choice, score), and response shape for System One (Jev) models.",
+      "domain": "docs.typesafe.ai"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "Exact entity (Jev, System One, /decisions) on TypeSafe's own docs domain. Clear-cut."
+    }
+  },
+  {
+    "id": "typesafe-docs-02",
+    "goal": "find official docs for the TypeSafe Jev systemone API",
+    "query": "jev model jaggedness known failure modes",
+    "result": {
+      "title": "Model Jaggedness: jev-1.13",
+      "url": "https://docs.typesafe.ai/model-jaggedness/jev-1.13.md",
+      "snippet": "Documents known failure modes and calibration notes for the jev-1.13 System One model, including state-size limits and prompt-injection resistance.",
+      "domain": "docs.typesafe.ai"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "Same first-party docs domain, exact model id named. Clear-cut."
+    }
+  },
+  {
+    "id": "typesafe-docs-03",
+    "goal": "find official docs for the TypeSafe Jev systemone API",
+    "query": "openrouter decisions api jev alpha endpoint",
+    "result": {
+      "title": "OpenRouter Decisions API (alpha)",
+      "url": "https://openrouter.ai/docs/api/alpha/decisions",
+      "snippet": "The alpha Decisions endpoint proxies TypeSafe System One models including Jev. Request and response bodies are documented with worked examples.",
+      "domain": "openrouter.ai"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 2,
+      "notes": "Exact entity present and it is a reputable gateway's own published API docs, but not TypeSafe's domain and marked alpha — genuinely ambiguous whether this counts as 'the official docs' the goal wants."
+    }
+  },
+  {
+    "id": "typesafe-docs-04",
+    "goal": "find official docs for the TypeSafe Jev systemone API",
+    "query": "typesafe jev api wrapper example",
+    "result": {
+      "title": "I built a tiny wrapper around TypeSafe's Jev model",
+      "url": "https://dev.to/somecoder/tiny-jev-wrapper-1a2b",
+      "snippet": "Walkthrough of a 40-line client for the System One Decisions API, with the gotchas I hit integrating Jev into a Slack bot.",
+      "domain": "dev.to"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 1,
+      "notes": "Personal dev.to post; exact entity named but it's a third-party wrapper writeup, not documentation itself — ambiguous band."
+    }
+  },
+  {
+    "id": "typesafe-docs-05",
+    "goal": "find official docs for the TypeSafe Jev systemone API",
+    "query": "typesafe jev agent guardrails discussion",
+    "result": {
+      "title": "Anyone using TypeSafe Jev for agent guardrails?",
+      "url": "https://news.ycombinator.com/item?id=41234567",
+      "snippet": "Thread discussing early experiences with TypeSafe's Jev model for cheap per-step judgments in agent pipelines.",
+      "domain": "news.ycombinator.com"
+    },
+    "labels": {
+      "relevance_band": [1, 1],
+      "credibility_level": 1,
+      "notes": "Forum discussion, same general topic and entity named, but not documentation — clearly a level-1 relevance case."
+    }
+  },
+  {
+    "id": "typesafe-docs-06",
+    "goal": "find official docs for the TypeSafe Jev systemone API",
+    "query": "best ai decision models 2026",
+    "result": {
+      "title": "Top 10 AI Decision Models You NEED to Know in 2026 (RANKED!)",
+      "url": "http://top10aitools.example/best-ai-decision-models-2026",
+      "snippet": "best ai decision models 2026 top ai models ranked ai decision api comparison ai judge model list ai model rankings — TypeSafe Jev makes our list at #7!",
+      "domain": "top10aitools.example"
+    },
+    "labels": {
+      "relevance_band": [0, 1],
+      "credibility_level": 0,
+      "notes": "Listicle title, keyword-stuffed snippet, aggregator-shaped domain. Jev is only namedropped in a ranked list, not documented."
+    }
+  },
+  {
+    "id": "mcp-sdk-01",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "mcp typescript sdk registerTool source",
+    "result": {
+      "title": "modelcontextprotocol/typescript-sdk",
+      "url": "https://github.com/modelcontextprotocol/typescript-sdk",
+      "snippet": "Official TypeScript SDK for the Model Context Protocol. Includes McpServer.registerTool with zod input/output schemas and structuredContent examples.",
+      "domain": "github.com"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "The actual SDK repository, exact API surface named. Clear-cut."
+    }
+  },
+  {
+    "id": "mcp-sdk-02",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "build an mcp server registerTool structuredContent",
+    "result": {
+      "title": "Build an MCP Server",
+      "url": "https://code.claude.com/docs/en/mcp",
+      "snippet": "Guide to registering tools with registerTool, returning structuredContent alongside stringified text content, and stdio transport considerations.",
+      "domain": "code.claude.com"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "First-party integration docs from a major MCP client, names the exact API. Clear-cut."
+    }
+  },
+  {
+    "id": "mcp-sdk-03",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "model context protocol specification tools",
+    "result": {
+      "title": "Model Context Protocol Specification",
+      "url": "https://modelcontextprotocol.io/specification",
+      "snippet": "The MCP specification defines the JSON-RPC message shapes that tools, resources, and prompts use across client and server implementations.",
+      "domain": "modelcontextprotocol.io"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 2,
+      "notes": "The protocol spec itself is primary-source and highly relevant, but it describes the wire protocol generally rather than the TypeScript SDK's registerTool surface specifically — ambiguous band."
+    }
+  },
+  {
+    "id": "mcp-sdk-04",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "registerTool schema migration 1.20 to 1.30",
+    "result": {
+      "title": "Migrating from registerTool v1 to the new schema shape",
+      "url": "https://stackoverflow.com/questions/78912345/mcp-registertool-schema-migration",
+      "snippet": "Answer walking through the breaking change in registerTool's output schema between SDK 1.20 and 1.30, with a before/after code sample.",
+      "domain": "stackoverflow.com"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 1,
+      "notes": "Community Q&A, exact API named with a concrete code migration — useful but unaffiliated commentary, not official docs."
+    }
+  },
+  {
+    "id": "mcp-sdk-05",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "my first mcp server afternoon project",
+    "result": {
+      "title": "My first MCP server in an afternoon",
+      "url": "https://medium.com/@buildwithme/my-first-mcp-server-afternoon",
+      "snippet": "Personal writeup of wiring up a toy MCP server with two tools; doesn't go deep on registerTool's schema options.",
+      "domain": "medium.com"
+    },
+    "labels": {
+      "relevance_band": [0, 1],
+      "credibility_level": 1,
+      "notes": "Same general topic (building an MCP server) but the snippet itself says it skips the tool-registration API detail the goal wants."
+    }
+  },
+  {
+    "id": "mcp-sdk-06",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "best mcp tools ranked 2026",
+    "result": {
+      "title": "Top 15 Model Context Protocol Tools Ranked (2026 Buyer's Guide)",
+      "url": "http://bestmcptools.biz/top-15-mcp-tools-2026",
+      "snippet": "best mcp tools 2026 top model context protocol servers ranked mcp sdk comparison buy mcp hosting mcp tools list ultimate guide",
+      "domain": "bestmcptools.biz"
+    },
+    "labels": {
+      "relevance_band": [0, 1],
+      "credibility_level": 0,
+      "notes": "Listicle title, keyword-stuffed snippet, .biz aggregator domain — content-farm shape."
+    }
+  },
+  {
+    "id": "mcp-sdk-07",
+    "goal": "evaluate the MCP TypeScript SDK's tool registration API",
+    "query": "ai agent frameworks productivity",
+    "result": {
+      "title": "10 AI Agent Frameworks That Will 10x Your Productivity",
+      "url": "https://aiproductivityhacks.info/10-agent-frameworks-10x-productivity",
+      "snippet": "ai agent frameworks 2026 boost productivity ai agents ranked best agent framework list agentic workflows explained click here to learn more",
+      "domain": "aiproductivityhacks.info"
+    },
+    "labels": {
+      "relevance_band": [0, 0],
+      "credibility_level": 0,
+      "notes": "Different topic entirely (general agent frameworks, not MCP or tool registration) served by an SEO farm domain. Clear-cut zero."
+    }
+  },
+  {
+    "id": "ssrf-node-01",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "ssrf prevention cheat sheet dns resolve before connect",
+    "result": {
+      "title": "SSRF Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html",
+      "snippet": "OWASP's cheat sheet on preventing SSRF: validate resolved IPs against private, loopback, and link-local ranges before connecting, and re-validate on every redirect.",
+      "domain": "cheatsheetseries.owasp.org"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "Standards-body-adjacent primary source, exact recommended practice named. Clear-cut."
+    }
+  },
+  {
+    "id": "ssrf-node-02",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "node dns.lookup hostname resolve before fetch",
+    "result": {
+      "title": "dns.lookup(hostname, options, callback)",
+      "url": "https://nodejs.org/api/dns.html#dnslookuphostname-options-callback",
+      "snippet": "Node.js API documentation for dns.lookup, including how to resolve a hostname to an address before establishing a connection.",
+      "domain": "nodejs.org"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "First-party Node.js API docs, the exact primitive the practice is built on. Clear-cut."
+    }
+  },
+  {
+    "id": "ssrf-node-03",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "rfc 1918 private address ranges",
+    "result": {
+      "title": "RFC 1918 - Address Allocation for Private Internets",
+      "url": "https://www.rfc-editor.org/rfc/rfc1918",
+      "snippet": "Defines the private-use IPv4 address ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) commonly excluded by SSRF guards.",
+      "domain": "rfc-editor.org"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 2,
+      "notes": "Primary standards source for the ranges an SSRF guard must exclude, but it's background reference rather than crawler-specific guidance — ambiguous band."
+    }
+  },
+  {
+    "id": "ssrf-node-04",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "patched ssrf hole internal crawler metadata endpoint",
+    "result": {
+      "title": "How I patched an SSRF hole in our internal crawler",
+      "url": "https://blog.smallteam.dev/patched-ssrf-hole-internal-crawler",
+      "snippet": "War story: a redirect chain let our fetcher reach the cloud metadata endpoint at 169.254.169.254. Here's the DNS-resolve-before-connect fix we shipped.",
+      "domain": "blog.smallteam.dev"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 1,
+      "notes": "Personal engineering blog, but a concrete first-hand account of the exact failure mode and fix — exact entity/claim present, plausibly a 2."
+    }
+  },
+  {
+    "id": "ssrf-node-05",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "is checking hostname enough to prevent ssrf",
+    "result": {
+      "title": "Is checking hostname enough to prevent SSRF?",
+      "url": "https://security.stackexchange.com/questions/234567/is-checking-hostname-enough-to-prevent-ssrf",
+      "snippet": "Discussion thread on why string-matching a hostname against a blocklist is insufficient and DNS resolution must be checked instead.",
+      "domain": "security.stackexchange.com"
+    },
+    "labels": {
+      "relevance_band": [1, 1],
+      "credibility_level": 1,
+      "notes": "Community Q&A on the same general topic, useful context but not itself a stated best-practice writeup — clear level-1."
+    }
+  },
+  {
+    "id": "ssrf-node-06",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "nodejs security mistakes startup",
+    "result": {
+      "title": "Top 9 Node.js Security Mistakes Killing Your Startup (Must Read!)",
+      "url": "http://webdevsecuritytips.net/top-9-nodejs-security-mistakes",
+      "snippet": "nodejs security mistakes 2026 startup security tips avoid these nodejs errors security checklist rated best security guide",
+      "domain": "webdevsecuritytips.net"
+    },
+    "labels": {
+      "relevance_band": [0, 1],
+      "credibility_level": 0,
+      "notes": "Listicle title and keyword-stuffed snippet on the general topic of Node security, no SSRF specifics — content-farm shape."
+    }
+  },
+  {
+    "id": "ssrf-node-07",
+    "goal": "find the current best practice for handling SSRF in Node.js fetch-based crawlers",
+    "query": "best free apis for developers 2026",
+    "result": {
+      "title": "50 Best Free APIs For Developers in 2026 (Updated List)",
+      "url": "https://freeapilistpro.com/50-best-free-apis-2026",
+      "snippet": "free apis 2026 best developer apis list updated weekly top rated apis for your next project — api directory, browse now",
+      "domain": "freeapilistpro.com"
+    },
+    "labels": {
+      "relevance_band": [0, 0],
+      "credibility_level": 0,
+      "notes": "Different topic entirely (an API directory listicle), served by an aggregator farm domain. Clear-cut zero."
+    }
+  },
+  {
+    "id": "searxng-json-01",
+    "goal": "find the current recommended way to configure SearXNG's JSON search API",
+    "query": "searxng search api json format settings.yml",
+    "result": {
+      "title": "Search API",
+      "url": "https://docs.searxng.org/dev/search_api.html",
+      "snippet": "Documents the SearXNG search API, including how to enable the json output format in settings.yml under search.formats.",
+      "domain": "docs.searxng.org"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "First-party SearXNG docs, exact config key named. Clear-cut."
+    }
+  },
+  {
+    "id": "searxng-json-02",
+    "goal": "find the current recommended way to configure SearXNG's JSON search API",
+    "query": "searxng github settings.yml.dist formats",
+    "result": {
+      "title": "searxng/searxng",
+      "url": "https://github.com/searxng/searxng",
+      "snippet": "Official SearXNG repository; settings.yml.dist ships with formats: [html] by default, json format must be added explicitly for API use.",
+      "domain": "github.com"
+    },
+    "labels": {
+      "relevance_band": [2, 2],
+      "credibility_level": 2,
+      "notes": "Source repository, first-party, exact config detail named. Clear-cut."
+    }
+  },
+  {
+    "id": "searxng-json-03",
+    "goal": "find the current recommended way to configure SearXNG's JSON search API",
+    "query": "searxng 403 format json error",
+    "result": {
+      "title": "SearXNG returns 403 when I request format=json",
+      "url": "https://stackoverflow.com/questions/71234567/searxng-403-format-json",
+      "snippet": "Answer explaining that SearXNG blocks the json format unless it's added to the formats list in settings.yml, then the container is restarted.",
+      "domain": "stackoverflow.com"
+    },
+    "labels": {
+      "relevance_band": [1, 2],
+      "credibility_level": 1,
+      "notes": "Community Q&A that names the exact fix, but unaffiliated commentary rather than the docs themselves — ambiguous band."
+    }
+  },
+  {
+    "id": "searxng-json-04",
+    "goal": "find the current recommended way to configure SearXNG's JSON search API",
+    "query": "self-hosting searxng traefik reverse proxy",
+    "result": {
+      "title": "Self-hosting SearXNG behind Traefik",
+      "url": "https://blog.homelabber.io/self-hosting-searxng-traefik",
+      "snippet": "Homelab writeup on reverse-proxying a SearXNG instance; focuses on TLS and Traefik labels rather than the JSON API config.",
+      "domain": "blog.homelabber.io"
+    },
+    "labels": {
+      "relevance_band": [0, 1],
+      "credibility_level": 1,
+      "notes": "Same general topic (running SearXNG) but the snippet explicitly says it doesn't cover the JSON API config the goal needs."
+    }
+  },
+  {
+    "id": "searxng-json-05",
+    "goal": "find the current recommended way to configure SearXNG's JSON search API",
+    "query": "best free privacy search engines 2026",
+    "result": {
+      "title": "Best Free Privacy Search Engines 2026 – Top 8 Ranked",
+      "url": "http://privacytoolsdigest.net/best-privacy-search-engines-2026",
+      "snippet": "privacy search engines 2026 best private search ranked searxng vs duckduckgo comparison top 8 free tools you need now",
+      "domain": "privacytoolsdigest.net"
+    },
+    "labels": {
+      "relevance_band": [0, 1],
+      "credibility_level": 0,
+      "notes": "SearXNG is only namedropped inside a ranked comparison listicle; keyword-stuffed snippet, aggregator domain."
+    }
+  }
+]
