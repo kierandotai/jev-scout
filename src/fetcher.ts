@@ -20,6 +20,7 @@ import { isIP } from "node:net";
 import { promises as dns } from "node:dns";
 
 import { contentHash } from "./ledger.ts";
+import { ENTITY_MAP } from "./backends/resolve.ts";
 
 // ---------------------------------------------------------------------------
 // Address classification (pure — no DNS, no I/O)
@@ -319,21 +320,12 @@ const SCRIPT_STYLE_RE = /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi;
 const COMMENT_RE = /<!--[\s\S]*?-->/g;
 const TAG_RE = /<[^>]+>/g;
 const ENTITY_RE = /&(nbsp|amp|lt|gt|quot|#39|apos);/g;
-const BASIC_ENTITIES: Record<string, string> = {
-  "&nbsp;": " ",
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-};
 
 function stripTags(html: string): string {
   const withoutScriptsAndStyles = html.replace(SCRIPT_STYLE_RE, " ");
   const withoutComments = withoutScriptsAndStyles.replace(COMMENT_RE, " ");
   const withoutTags = withoutComments.replace(TAG_RE, " ");
-  const decoded = withoutTags.replace(ENTITY_RE, (m) => BASIC_ENTITIES[m] ?? m);
+  const decoded = withoutTags.replace(ENTITY_RE, (m) => ENTITY_MAP[m] ?? m);
   return decoded.replace(/\s+/g, " ").trim();
 }
 

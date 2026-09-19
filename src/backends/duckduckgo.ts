@@ -1,4 +1,4 @@
-import { BackendError, SoftRateLimitError, type RawResult, type SearchBackend } from "./types.ts";
+import { BackendError, SoftRateLimitError, isAbortError, type RawResult, type SearchBackend } from "./types.ts";
 import { dedupeResults, stripHtml, toRawResult } from "./resolve.ts";
 
 const DDG_URL = "https://html.duckduckgo.com/html/";
@@ -35,10 +35,6 @@ function splitResultBlocks(body: string): string[] {
     blocks.push(body.slice(starts[i]!, end));
   }
   return blocks;
-}
-
-function isAbortError(err: unknown): boolean {
-  return err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
 }
 
 /** Resolve a result__a href: decode the uddg redirect param, or use the href as-is. */

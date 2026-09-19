@@ -22,6 +22,8 @@ import { z } from "zod";
 
 import {
   buildServer,
+  createInFlightTracker,
+  drainInFlight,
   guardedFetchOutputShape,
   guardedSearchOutputShape,
   researchReportOutputShape,
@@ -132,6 +134,7 @@ function scored(
 function ledgerBackedSearch(
   ctx: { ledger: Ledger; budget: Budget; session: string },
   results: AnnotatedResult[],
+  dropped: RunSearchResult["dropped"] = [],
 ): (input: RunSearchInput) => Promise<RunSearchResult> {
   return async (input) => {
     const search_id = randomUUID();
@@ -164,7 +167,7 @@ function ledgerBackedSearch(
       });
     });
 
-    return { search_id, results, backends_tried: ["ddg"] };
+    return { search_id, results, dropped, backends_tried: ["ddg"] };
   };
 }
 
@@ -276,7 +279,7 @@ test("guarded_search rejects malformed arguments before reaching the pipeline", 
       stubPipeline({
         runSearch: async () => {
           called += 1;
-          return { search_id: "x", results: [], backends_tried: [] } satisfies RunSearchResult;
+          return { search_id: "x", results: [], dropped: [], backends_tried: [] } satisfies RunSearchResult;
         },
       }),
   });
@@ -354,6 +357,7 @@ test("research_report before any search returns a zeroed, schema-valid shape wit
     assert.equal(report.dashboardUrl, DASHBOARD_URL);
     assert.equal(report.session, h.session);
     assert.equal(report.mode, "annotate");
+    assert.deepEqual(report.thresholds, { min_relevance: 1, min_credibility: 1 });
     assert.equal(report.budget.callsUsed, 0);
     assert.equal(report.budget.callsRemaining, 300);
     assert.equal(report.budget.exhausted, false);
@@ -449,6 +453,79 @@ test("a response past the 80% budget mark carries remaining-budget fields", asyn
     assert.equal(parsed.budget.callsRemaining, 1);
     assert.equal(parsed.budget.over80.calls, true);
     assert.equal(parsed.budget.exhausted, false);
+  } finally {
+    await h.close();
+  }
+});
+
+test("guarded_search round-trips gate-dropped entries in the dropped field (AN1)", async () => {
+  const survivor = scored("Node docs", "https://nodejs.org/api/test.html", 2, 2);
+  const dropped: RunSearchResult["dropped"] = [
+    { url: "https://content-farm.example/top-10", domain: "content-farm.example", reasons: ["credibility 0.40 is below the gate threshold 1"] },
+  ];
+  const h = await harness({
+    config: loadConfig({ JEV_SCOUT_MODE: "gate" } as NodeJS.ProcessEnv),
+    pipeline: (ctx) => stubPipeline({ runSearch: ledgerBackedSearch(ctx, [survivor], dropped) }),
+  });
+  try {
+    const res = await callTool(h.client, "guarded_search", { query: "node test runner" });
+    assert.notEqual(res.isError, true);
+
+    const parsed = z.object(guardedSearchOutputShape).strict().parse(res.structuredContent);
+    assert.equal(parsed.results.length, 1);
+    assert.deepEqual(parsed.dropped, dropped);
+
+    // Same object, stringified — dropped survives the text duality too.
+    assert.deepEqual((textPayload(res).dropped as unknown[]), dropped);
+  } finally {
+    await h.close();
+  }
+});
+
+test("guarded_search: an empty dropped array round-trips in annotate mode", async () => {
+  const h = await harness({
+    pipeline: (ctx) => stubPipeline({ runSearch: ledgerBackedSearch(ctx, []) }),
+  });
+  try {
+    const res = await callTool(h.client, "guarded_search", { query: "anything" });
+    const parsed = z.object(guardedSearchOutputShape).strict().parse(res.structuredContent);
+    assert.deepEqual(parsed.dropped, []);
+  } finally {
+    await h.close();
+  }
+});
+
+test("AN2: live mode + thresholds are interpolated into every tool description, and research_report carries them", async () => {
+  const config = loadConfig({
+    JEV_SCOUT_MODE: "gate",
+    JEV_SCOUT_MIN_RELEVANCE: "1.4",
+    JEV_SCOUT_MIN_CREDIBILITY: "1.6",
+  } as NodeJS.ProcessEnv);
+  const h = await harness({ config, pipeline: () => stubPipeline({}) });
+  try {
+    const { tools } = await h.client.listTools();
+    for (const tool of tools) {
+      assert.match(
+        tool.description ?? "",
+        /gate/,
+        `${tool.name} description should mention the live gate mode`,
+      );
+      assert.match(
+        tool.description ?? "",
+        /1\.4/,
+        `${tool.name} description should mention the live min_relevance`,
+      );
+      assert.match(
+        tool.description ?? "",
+        /1\.6/,
+        `${tool.name} description should mention the live min_credibility`,
+      );
+    }
+
+    const res = await callTool(h.client, "research_report", {});
+    const report = z.object(researchReportOutputShape).strict().parse(res.structuredContent);
+    assert.equal(report.mode, "gate");
+    assert.deepEqual(report.thresholds, { min_relevance: 1.4, min_credibility: 1.6 });
   } finally {
     await h.close();
   }
@@ -562,5 +639,170 @@ test("an unscored fetch still delivers content and keeps the advisory flag false
     assert.equal(parsed.text, "plain page text");
   } finally {
     await h.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// F20: error branches — a plain (non-BackendChainError) throw from the
+// pipeline must surface the tool-specific generic reason, not a raw throw.
+// ---------------------------------------------------------------------------
+
+test("F20: guarded_search stub throwing a plain Error surfaces isError reason search_failed", async () => {
+  const h = await harness({
+    pipeline: () =>
+      stubPipeline({
+        runSearch: async () => {
+          throw new Error("boom");
+        },
+      }),
+  });
+  try {
+    const res = await callTool(h.client, "guarded_search", { query: "anything" });
+    assert.equal(res.isError, true);
+    const payload = textPayload(res);
+    assert.equal(payload.error, true);
+    assert.equal(payload.reason, "search_failed");
+    assert.match(String(payload.message), /boom/);
+    assert.equal(payload.backends_tried, undefined, "a plain Error carries no backends_tried");
+    assert.deepEqual(res.structuredContent, payload);
+  } finally {
+    await h.close();
+  }
+});
+
+test("F20: guarded_fetch stub throwing a plain Error surfaces isError reason fetch_failed", async () => {
+  const h = await harness({
+    pipeline: () =>
+      stubPipeline({
+        runFetch: async () => {
+          throw new Error("kaboom");
+        },
+      }),
+  });
+  try {
+    const res = await callTool(h.client, "guarded_fetch", { url: "https://example.com/x" });
+    assert.equal(res.isError, true);
+    const payload = textPayload(res);
+    assert.equal(payload.error, true);
+    assert.equal(payload.reason, "fetch_failed");
+    assert.match(String(payload.message), /kaboom/);
+    assert.deepEqual(res.structuredContent, payload);
+  } finally {
+    await h.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// F17: shutdown drain — in-flight tool calls are awaited, not dropped
+// ---------------------------------------------------------------------------
+
+test("F17: createInFlightTracker.drain is a no-op with nothing tracked, and waits for a tracked promise to settle", async () => {
+  const tracker = createInFlightTracker();
+  await tracker.drain(50);
+  assert.equal(tracker.size(), 0);
+
+  let resolved = false;
+  const tracked = tracker.track(
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolved = true;
+        resolve();
+      }, 20);
+    }),
+  );
+  assert.equal(tracker.size(), 1);
+
+  await tracker.drain(1000);
+  assert.equal(resolved, true, "drain must wait for the tracked promise to settle");
+  assert.equal(tracker.size(), 0, "a settled promise removes itself from the tracker");
+  await tracked;
+});
+
+test("F17: createInFlightTracker.drain gives up after its grace timeout without disturbing the original promise", async () => {
+  const tracker = createInFlightTracker();
+  let resolved = false;
+  const tracked = tracker.track(
+    new Promise<string>((resolve) => {
+      setTimeout(() => {
+        resolved = true;
+        resolve("done");
+      }, 200);
+    }),
+  );
+
+  const start = Date.now();
+  await tracker.drain(20);
+  const elapsed = Date.now() - start;
+  assert.ok(elapsed < 150, `drain must return promptly at its grace timeout (took ${elapsed}ms)`);
+  assert.equal(resolved, false, "the grace timeout elapsed well before the tracked promise settles");
+
+  // Drain giving up does not cancel or lose the original promise — its own
+  // caller (the tool handler's return) still gets the real result.
+  assert.equal(await tracked, "done");
+});
+
+test("F17: buildServer level — a slow in-flight tool call is awaited by drainInFlight, not lost", async () => {
+  const dir = tmpDir("mcp-drain");
+  const ledger = createLedger(dir);
+  const budget = createBudget({ maxCalls: 300, maxSpendUsd: 0.05, maxJudgedPerSearch: 8 });
+  const config = loadConfig({});
+  const session = randomUUID();
+
+  let releaseSlowCall: (() => void) | undefined;
+  const slowGate = new Promise<void>((resolve) => {
+    releaseSlowCall = resolve;
+  });
+
+  const server = buildServer({
+    pipeline: stubPipeline({
+      runSearch: async () => {
+        await slowGate; // simulates a pipeline call still running at shutdown time
+        return {
+          search_id: "slow-1",
+          results: [],
+          dropped: [],
+          backends_tried: ["ddg"],
+        } satisfies RunSearchResult;
+      },
+    }),
+    budget,
+    ledger,
+    config,
+    dashboardUrl: null,
+    session,
+  });
+
+  const client = new Client({ name: "jev-scout-test", version: "0.0.0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
+
+  try {
+    const callPromise = callTool(client, "guarded_search", { query: "slow" });
+
+    // Let the call actually start (and register itself in-flight) before
+    // the simulated shutdown drain begins racing it.
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const drainPromise = drainInFlight(server, 5000);
+    let drainSettled = false;
+    void drainPromise.then(() => {
+      drainSettled = true;
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    assert.equal(drainSettled, false, "drain must still be waiting on the in-flight call");
+
+    releaseSlowCall!();
+    await drainPromise;
+    assert.equal(drainSettled, true, "drain resolves once the in-flight call settles");
+
+    const res = await callPromise;
+    assert.notEqual(res.isError, true);
+    const parsed = z.object(guardedSearchOutputShape).strict().parse(res.structuredContent);
+    assert.equal(parsed.search_id, "slow-1", "the in-flight call's own result was not lost");
+  } finally {
+    await client.close();
+    await server.close();
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });

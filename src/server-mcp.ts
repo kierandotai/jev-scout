@@ -75,6 +75,19 @@ const budgetStateSchema = z.object({
   over80: z.object({ calls: z.boolean(), spend: z.boolean() }),
 });
 
+/** A search result the gate dropped — never made it into `results`. Mirrors pipeline.ts's DroppedResult. */
+const droppedResultSchema = z.object({
+  url: z.string(),
+  domain: z.string(),
+  reasons: z.array(z.string()),
+});
+
+/** Live gate thresholds, surfaced by research_report (AN2). */
+const thresholdsSchema = z.object({
+  min_relevance: z.number(),
+  min_credibility: z.number(),
+});
+
 // ---------------------------------------------------------------------------
 // Tool schemas
 // ---------------------------------------------------------------------------
@@ -99,11 +112,15 @@ export const guardedSearchOutputShape = {
       domain: z.string(),
       scored: z.boolean(),
       budget_exhausted: z.boolean().optional(),
+      /** Set instead of being judged at all — the per-search judged-result cap was hit. */
+      judge_skipped: z.literal("judge_cap").optional(),
       relevance: scoreJudgmentSchema.optional(),
       credibility: scoreJudgmentSchema.optional(),
       worth_fetching: noulJudgmentSchema.optional(),
     }),
   ),
+  /** Every gate-dropped result (threshold drops and beyond-cap truncation), gate mode only. */
+  dropped: z.array(droppedResultSchema),
   budget: budgetStateSchema.optional(),
 };
 
@@ -145,6 +162,8 @@ const researchReportInputShape = {};
 export const researchReportOutputShape = {
   session: z.string(),
   mode: z.enum(["annotate", "gate"]),
+  /** Live gate thresholds (config.minRelevance/minCredibility) at report time. */
+  thresholds: thresholdsSchema,
   goals: z.array(
     z.object({
       goal: z.string(),
@@ -337,6 +356,76 @@ function failed(payload: ToolErrorPayload) {
 }
 
 // ---------------------------------------------------------------------------
+// In-flight tool-call tracking + shutdown drain (F17)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DRAIN_GRACE_MS = 5_000;
+
+export interface InFlightTracker {
+  /** Wrap a handler's promise so shutdown can await it; self-removes on settle. */
+  track<T>(promise: Promise<T>): Promise<T>;
+  /** Await every currently-tracked promise, bounded by `graceMs` ms. Never rejects. */
+  drain(graceMs?: number): Promise<void>;
+  /** Number of calls currently in flight — exposed for tests. */
+  size(): number;
+}
+
+/** Standalone, independently testable — `buildServer` wires one instance per server. */
+export function createInFlightTracker(): InFlightTracker {
+  const inFlight = new Set<Promise<unknown>>();
+  return {
+    track(promise) {
+      const wrapped = promise.finally(() => {
+        inFlight.delete(wrapped);
+      });
+      inFlight.add(wrapped);
+      return wrapped;
+    },
+    async drain(graceMs = DEFAULT_DRAIN_GRACE_MS) {
+      if (inFlight.size === 0) return;
+      await Promise.race([
+        Promise.allSettled([...inFlight]),
+        new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, graceMs);
+          timer.unref?.();
+        }),
+      ]);
+    },
+    size() {
+      return inFlight.size;
+    },
+  };
+}
+
+/** Per-server tracker, keyed off the McpServer instance `buildServer` returns. */
+const inFlightTrackers = new WeakMap<McpServer, InFlightTracker>();
+
+/**
+ * Await every tool call currently in flight on `server`, bounded by `graceMs`
+ * (default 5s). Used by `main()`'s shutdown so an in-progress guarded_search /
+ * guarded_fetch call is never dropped mid-call. A no-op for a server built
+ * without `buildServer` or with no tracked calls.
+ */
+export async function drainInFlight(server: McpServer, graceMs?: number): Promise<void> {
+  const tracker = inFlightTrackers.get(server);
+  if (tracker === undefined) return;
+  await tracker.drain(graceMs);
+}
+
+// ---------------------------------------------------------------------------
+// Description interpolation (AN2): live mode + thresholds, at registration time
+// ---------------------------------------------------------------------------
+
+function modeAndThresholdsNote(config: Config): string {
+  return config.mode === "gate"
+    ? `Current mode: gate — results below min_relevance=${config.minRelevance} or ` +
+        `min_credibility=${config.minCredibility} are dropped (see the \`dropped\` field and ` +
+        "research_report's thresholds)."
+    : `Current mode: annotate — nothing is dropped; configured gate thresholds ` +
+        `(min_relevance=${config.minRelevance}, min_credibility=${config.minCredibility}) are not enforced.`;
+}
+
+// ---------------------------------------------------------------------------
 // buildServer
 // ---------------------------------------------------------------------------
 
@@ -379,6 +468,12 @@ export function buildServer(deps: ServerDeps): McpServer {
     { capabilities: { tools: {} } },
   );
 
+  // In-flight tracking (F17): every tool handler body below is wrapped in
+  // `tracker.track(...)` so `drainInFlight(server)` can await whatever is
+  // still running at shutdown time, instead of dropping it mid-call.
+  const tracker = createInFlightTracker();
+  inFlightTrackers.set(server, tracker);
+
   // -------------------------------------------------------------------------
   // guarded_search
   // -------------------------------------------------------------------------
@@ -390,40 +485,46 @@ export function buildServer(deps: ServerDeps): McpServer {
       description:
         "Search the web and return results annotated with Jev judgments: relevance (0-2), " +
         "credibility (0-2) and worth_fetching (probability), each with confidence. In gate mode, " +
-        "results below the configured thresholds are dropped. Results marked scored:false were " +
-        "delivered unjudged (Jev failure or budget exhaustion) — treat their quality as unknown.",
+        "results below the configured thresholds are dropped (see the `dropped` field). Results " +
+        "marked scored:false were delivered unjudged (Jev failure or budget exhaustion) — treat " +
+        "their quality as unknown. " +
+        modeAndThresholdsNote(config),
       inputSchema: guardedSearchInputShape,
       outputSchema: guardedSearchOutputShape,
     },
-    async ({ query, goal, max_results }) => {
-      try {
-        const result = await pipeline.runSearch({
-          query,
-          goal,
-          maxResults: max_results ?? config.maxJudged,
-        });
-        const budgetField = budgetFieldIfOver80(budget) ?? result.budget;
-        return ok({
-          search_id: result.search_id,
-          query,
-          ...(goal === undefined ? {} : { goal }),
-          mode: config.mode,
-          backends_tried: result.backends_tried,
-          results: result.results,
-          ...(budgetField === undefined ? {} : { budget: budgetField }),
-        });
-      } catch (err) {
-        const backendsTried = backendsTriedFrom(err);
-        logErr(`guarded_search failed: ${messageOf(err)}`);
-        return failed(
-          errorPayload(
-            backendsTried === undefined ? "search_failed" : "backend_chain_failed",
-            messageOf(err),
-            backendsTried,
-          ),
-        );
-      }
-    },
+    ({ query, goal, max_results }) =>
+      tracker.track(
+        (async () => {
+          try {
+            const result = await pipeline.runSearch({
+              query,
+              goal,
+              maxResults: max_results ?? config.maxJudged,
+            });
+            const budgetField = budgetFieldIfOver80(budget) ?? result.budget;
+            return ok({
+              search_id: result.search_id,
+              query,
+              ...(goal === undefined ? {} : { goal }),
+              mode: config.mode,
+              backends_tried: result.backends_tried,
+              results: result.results,
+              dropped: result.dropped,
+              ...(budgetField === undefined ? {} : { budget: budgetField }),
+            });
+          } catch (err) {
+            const backendsTried = backendsTriedFrom(err);
+            logErr(`guarded_search failed: ${messageOf(err)}`);
+            return failed(
+              errorPayload(
+                backendsTried === undefined ? "search_failed" : "backend_chain_failed",
+                messageOf(err),
+                backendsTried,
+              ),
+            );
+          }
+        })(),
+      ),
   );
 
   // -------------------------------------------------------------------------
@@ -438,44 +539,52 @@ export function buildServer(deps: ServerDeps): McpServer {
         "Fetch a page and return its extracted text plus Jev judgments (answered, content_class, " +
         "steering_risk). steering_risk is ADVISORY: the judgment fields are emitted before the text " +
         "field so you see the flag before the content, but content is always delivered. Private, " +
-        "loopback and link-local addresses are refused.",
+        "loopback and link-local addresses are refused. " +
+        modeAndThresholdsNote(config) +
+        (config.mode === "gate"
+          ? " In gate mode a fetch to a domain already below the credibility threshold this " +
+            "session is refused outright (reason gate_refused), before any network I/O."
+          : ""),
       inputSchema: guardedFetchInputShape,
       outputSchema: guardedFetchOutputShape,
     },
-    async ({ url, goal }) => {
-      let result;
-      try {
-        result = await pipeline.runFetch({ url, goal });
-      } catch (err) {
-        logErr(`guarded_fetch failed: ${messageOf(err)}`);
-        return failed(errorPayload("fetch_failed", messageOf(err)));
-      }
+    ({ url, goal }) =>
+      tracker.track(
+        (async () => {
+          let result;
+          try {
+            result = await pipeline.runFetch({ url, goal });
+          } catch (err) {
+            logErr(`guarded_fetch failed: ${messageOf(err)}`);
+            return failed(errorPayload("fetch_failed", messageOf(err)));
+          }
 
-      if (!result.ok) {
-        return failed(errorPayload(result.reason, result.detail));
-      }
+          if (!result.ok) {
+            return failed(errorPayload(result.reason, result.detail));
+          }
 
-      const budgetField = budgetFieldIfOver80(budget) ?? result.budget;
-      const steeringProbability = result.steering_risk?.probability;
+          const budgetField = budgetFieldIfOver80(budget) ?? result.budget;
+          const steeringProbability = result.steering_risk?.probability;
 
-      // Key order below IS the contract — judgment fields, then budget, then
-      // text last. JSON.stringify preserves insertion order for string keys.
-      return ok({
-        search_id: result.search_id,
-        ok: true,
-        url: result.url,
-        finalUrl: result.finalUrl,
-        scored: result.scored,
-        ...(result.budget_exhausted === true ? { budget_exhausted: true } : {}),
-        steering_risk_flag: steeringProbability !== undefined && steeringProbability >= 0.5,
-        ...(result.steering_risk === undefined ? {} : { steering_risk: result.steering_risk }),
-        ...(result.answered === undefined ? {} : { answered: result.answered }),
-        ...(result.content_class === undefined ? {} : { content_class: result.content_class }),
-        truncated: result.truncated,
-        ...(budgetField === undefined ? {} : { budget: budgetField }),
-        text: result.text,
-      });
-    },
+          // Key order below IS the contract — judgment fields, then budget, then
+          // text last. JSON.stringify preserves insertion order for string keys.
+          return ok({
+            search_id: result.search_id,
+            ok: true,
+            url: result.url,
+            finalUrl: result.finalUrl,
+            scored: result.scored,
+            ...(result.budget_exhausted === true ? { budget_exhausted: true } : {}),
+            steering_risk_flag: steeringProbability !== undefined && steeringProbability >= 0.5,
+            ...(result.steering_risk === undefined ? {} : { steering_risk: result.steering_risk }),
+            ...(result.answered === undefined ? {} : { answered: result.answered }),
+            ...(result.content_class === undefined ? {} : { content_class: result.content_class }),
+            truncated: result.truncated,
+            ...(budgetField === undefined ? {} : { budget: budgetField }),
+            text: result.text,
+          });
+        })(),
+      ),
   );
 
   // -------------------------------------------------------------------------
@@ -489,42 +598,48 @@ export function buildServer(deps: ServerDeps): McpServer {
       description:
         "Session aggregates grouped by goal: searches run, results judged, domains touched with " +
         "mean credibility, gate actions, flagged (low-credibility) domains, session and today's " +
-        "spend, remaining budget, and the live dashboard URL. Valid before any search has run.",
+        "spend, remaining budget, live gate thresholds, and the live dashboard URL. Valid before " +
+        "any search has run. " +
+        modeAndThresholdsNote(config),
       inputSchema: researchReportInputShape,
       outputSchema: researchReportOutputShape,
     },
-    async () => {
-      try {
-        const state = budget.state();
-        const goals = [...tallies.goals.entries()]
-          .map(([goal, tally]) => ({
-            goal,
-            searches: tally.searches,
-            results_judged: tally.resultsJudged,
-            gate_actions: tally.gateActions,
-            domains: domainStats(tally.domains),
-          }))
-          .sort((a, b) => b.searches - a.searches || a.goal.localeCompare(b.goal));
+    () =>
+      tracker.track(
+        (async () => {
+          try {
+            const state = budget.state();
+            const goals = [...tallies.goals.entries()]
+              .map(([goal, tally]) => ({
+                goal,
+                searches: tally.searches,
+                results_judged: tally.resultsJudged,
+                gate_actions: tally.gateActions,
+                domains: domainStats(tally.domains),
+              }))
+              .sort((a, b) => b.searches - a.searches || a.goal.localeCompare(b.goal));
 
-        const flagged = domainStats(tallies.allDomains).filter(
-          (d) => d.mean_credibility !== null && d.mean_credibility < FLAGGED_CREDIBILITY,
-        );
+            const flagged = domainStats(tallies.allDomains).filter(
+              (d) => d.mean_credibility !== null && d.mean_credibility < FLAGGED_CREDIBILITY,
+            );
 
-        return ok({
-          session,
-          mode: config.mode,
-          goals,
-          flagged_domains: flagged,
-          session_spend_usd: state.spendUsd,
-          today_spend_usd: ledger.todaySpend(),
-          budget: state,
-          dashboardUrl,
-        });
-      } catch (err) {
-        logErr(`research_report failed: ${messageOf(err)}`);
-        return failed(errorPayload("report_failed", messageOf(err)));
-      }
-    },
+            return ok({
+              session,
+              mode: config.mode,
+              thresholds: { min_relevance: config.minRelevance, min_credibility: config.minCredibility },
+              goals,
+              flagged_domains: flagged,
+              session_spend_usd: state.spendUsd,
+              today_spend_usd: ledger.todaySpend(),
+              budget: state,
+              dashboardUrl,
+            });
+          } catch (err) {
+            logErr(`research_report failed: ${messageOf(err)}`);
+            return failed(errorPayload("report_failed", messageOf(err)));
+          }
+        })(),
+      ),
   );
 
   return server;
@@ -572,6 +687,9 @@ export async function main(): Promise<void> {
   // mode, but a silent one — so warn in jev-scout's own voice too, because
   // "mock provider" means every score in every tool response is a keyword
   // heuristic, not a Jev decision.
+  // Note (F12): OPENROUTER_API_KEY / TYPESAFE_API_KEY are read directly from
+  // process.env by jev-client's own provider resolution — jev-scout's Config
+  // deliberately never carries a copy of either key.
   const client = new JevClient({ warnOnMock: true });
   if (client.provider.name === "mock") {
     logErr(
@@ -612,6 +730,14 @@ export async function main(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
     logErr(`shutting down (${reason})`);
+    // F17: give any tool call already in flight (guarded_search/guarded_fetch/
+    // research_report) up to 5s to finish before tearing anything down, so a
+    // transport-close race never silently drops an in-progress result.
+    try {
+      await drainInFlight(server, 5_000);
+    } catch (err) {
+      logErr(`drain in-flight tool calls failed: ${messageOf(err)}`);
+    }
     try {
       await dashboard.close();
     } catch (err) {

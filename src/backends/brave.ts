@@ -1,4 +1,4 @@
-import { BackendError, SoftRateLimitError, type RawResult, type SearchBackend } from "./types.ts";
+import { BackendError, SoftRateLimitError, isAbortError, type RawResult, type SearchBackend } from "./types.ts";
 import { dedupeResults, stripHtml, toRawResult } from "./resolve.ts";
 
 interface BraveResult {
@@ -14,10 +14,6 @@ interface BraveResponse {
 export interface BraveBackendOptions {
   /** Fetch timeout (ms) for each Brave request, via AbortSignal.timeout(). Default 15000. */
   timeoutMs?: number;
-}
-
-function isAbortError(err: unknown): boolean {
-  return err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
 }
 
 export class BraveBackend implements SearchBackend {

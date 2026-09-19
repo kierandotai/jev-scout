@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as http from "node:http";
+import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createLedger, type Ledger } from "../src/ledger.ts";
@@ -356,4 +358,164 @@ test("a <script> result title never appears server-side interpolated into GET /,
     "dashboard.html must never build DOM from backend-derived strings via innerHTML/insertAdjacentHTML/outerHTML",
   );
   assert.match(source, /textContent/, "dashboard.html should insert backend-derived strings via textContent");
+});
+
+// ---------------------------------------------------------------------------
+// Item 7 (consumer side): a refused fetch event's full payload (including
+// ok:false and reason) reaches an SSE client, and a "budget" event is
+// counted in /api/summary's eventCounts.
+// ---------------------------------------------------------------------------
+
+test("a refused fetch event (payload.ok === false) reaches an SSE client with its reason and detail intact", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    const conn = await connectSSE(`${dash.url}/events`);
+    ledger.append({
+      session: "s",
+      search_id: "search-refused",
+      type: "fetch",
+      payload: {
+        url: "https://spamfarm.example/article",
+        goal: "check the claim",
+        ok: false,
+        reason: "gate_refused",
+        detail: 'domain "spamfarm.example" has a cached credibility score of 0.20, below the gate threshold 1',
+      },
+    });
+    const events = await conn.waitForEvents(1);
+    const parsed = JSON.parse(events[0]!.data) as {
+      type: string;
+      payload: { ok: boolean; reason: string; detail: string; url: string };
+    };
+    assert.equal(parsed.type, "fetch");
+    assert.equal(parsed.payload.ok, false);
+    assert.equal(parsed.payload.reason, "gate_refused");
+    assert.match(parsed.payload.detail, /spamfarm\.example/);
+    assert.equal(parsed.payload.url, "https://spamfarm.example/article");
+    conn.destroy();
+  } finally {
+    await dash.close();
+  }
+});
+
+test("a 'budget' ledger event is counted in /api/summary's eventCounts", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    const before = (await fetch(`${dash.url}/api/summary`).then((r) => r.json())) as {
+      eventCounts: Record<string, number>;
+    };
+    assert.equal(before.eventCounts.budget, 0);
+
+    ledger.append({
+      session: "s",
+      search_id: "search-budget",
+      type: "budget",
+      payload: { limit: "calls", callsUsed: 300, spendUsd: 0.021 },
+    });
+
+    const after = (await fetch(`${dash.url}/api/summary`).then((r) => r.json())) as {
+      eventCounts: Record<string, number>;
+    };
+    assert.equal(after.eventCounts.budget, 1);
+  } finally {
+    await dash.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// F15: process-exit regression — the dashboard's listener and every accepted
+// socket must be unref'd, so a live dashboard with an open SSE client never
+// blocks the process from exiting on its own (the U7 socket-unref scenario,
+// tested end-to-end via a real child process rather than just asserting the
+// `.unref()` call sites exist).
+// ---------------------------------------------------------------------------
+
+test("process-exit regression: a dashboard with a live SSE client never blocks the process from exiting", async () => {
+  const fixtureDir = tmpDir("f15-fixture");
+  const ledgerDir = path.join(fixtureDir, "ledger");
+  const scriptPath = path.join(fixtureDir, "child.ts");
+
+  const ledgerModulePath = fileURLToPath(new URL("../src/ledger.ts", import.meta.url));
+  const dashboardModulePath = fileURLToPath(new URL("../src/dashboard.ts", import.meta.url));
+
+  // A nearby package.json with "type": "module" makes Node treat this .ts
+  // entry as ESM (mirrors this repo's own package.json), so top-level
+  // `import`/`await` work without any bundling step.
+  fs.writeFileSync(path.join(fixtureDir, "package.json"), JSON.stringify({ type: "module" }), "utf8");
+
+  const script = [
+    `import { createLedger } from ${JSON.stringify(ledgerModulePath)};`,
+    `import { startDashboard } from ${JSON.stringify(dashboardModulePath)};`,
+    "",
+    `const ledger = createLedger(${JSON.stringify(ledgerDir)});`,
+    "const dash = await startDashboard(ledger, { port: 0 });",
+    "process.stdout.write(JSON.stringify({ url: dash.url }) + \"\\n\");",
+    "",
+    "// Keep the event loop alive — like the real stdio MCP transport does by",
+    "// listening on stdin — until the parent ends stdin. This is the only",
+    "// thing standing between this process and exiting; no process.exit() is",
+    "// ever called. The regression under test is that the dashboard's own",
+    "// (unref'd) listener and sockets must NOT be an additional such anchor:",
+    "// once stdin ends, the process must exit on its own even with a live SSE",
+    "// client still connected.",
+    "process.stdin.resume();",
+    "process.stdin.on(\"end\", () => {});",
+    "",
+  ].join("\n");
+  fs.writeFileSync(scriptPath, script, "utf8");
+
+  const child = spawn(process.execPath, ["--experimental-strip-types", scriptPath], {
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
+  let stderrBuf = "";
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderrBuf += chunk.toString("utf8");
+  });
+
+  const url = await new Promise<string>((resolve, reject) => {
+    let stdoutBuf = "";
+    const timer = setTimeout(() => {
+      reject(new Error(`child never printed its dashboard URL; stderr:\n${stderrBuf}`));
+    }, 5000);
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdoutBuf += chunk.toString("utf8");
+      const nl = stdoutBuf.indexOf("\n");
+      if (nl === -1) return;
+      clearTimeout(timer);
+      try {
+        resolve((JSON.parse(stdoutBuf.slice(0, nl)) as { url: string }).url);
+      } catch (err) {
+        reject(err as Error);
+      }
+    });
+    child.on("error", reject);
+  });
+
+  const conn = await connectSSE(`${url}/events`);
+
+  // Mirrors an MCP client disconnecting: end the child's stdin. The fixture
+  // never reads it, so this is not itself what lets the child exit — it
+  // only stands in for "nothing is holding this process open from outside."
+  child.stdin.end();
+
+  const exitCode = await new Promise<number | null>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        new Error(
+          `child did not exit within 5s with a live SSE connection still open — ` +
+            `dashboard resources may not be properly unref'd; stderr:\n${stderrBuf}`,
+        ),
+      );
+    }, 5000);
+    child.on("exit", (code) => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
+
+  conn.destroy();
+  assert.equal(exitCode, 0);
 });

@@ -196,6 +196,29 @@
     flex: 1 1 100%;
   }
 
+  .refused-row .row-title {
+    flex: 1 1 100%;
+  }
+
+  .badge-refused {
+    background: var(--bad);
+    color: #fff;
+  }
+
+  /* --- Budget banner row --- */
+
+  .budget-row {
+    background: var(--bad);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 4px;
+  }
+
+  .budget-row .row-title {
+    color: #fff;
+    flex: 1 1 100%;
+  }
+
   /* --- Confidence bars --- */
 
   .bar-row {
@@ -358,8 +381,10 @@
       return el;
     }
 
-    function badge(text) {
-      return textEl("span", "badge", text);
+    function badge(text, extraClass) {
+      var el = textEl("span", "badge", text);
+      if (extraClass) el.classList.add(extraClass);
+      return el;
     }
 
     function asString(v, fallback) {
@@ -370,7 +395,11 @@
       return typeof v === "number" && isFinite(v) ? v : undefined;
     }
 
-    function makeBar(label, fraction) {
+    // `fraction` (0-1) sets the fill width; `displayValue` is the number
+    // shown next to the bar — the raw score, not the confidence used for the
+    // fill, so the two can legitimately disagree (a confident low score is a
+    // short, dark bar labeled with a small number).
+    function makeBar(label, fraction, displayValue) {
       var wrap = textEl("div", "bar-row");
       var pct = Math.max(0, Math.min(1, fraction)) * 100;
       wrap.appendChild(textEl("span", "bar-label", label));
@@ -379,7 +408,7 @@
       fill.style.width = pct.toFixed(0) + "%";
       track.appendChild(fill);
       wrap.appendChild(track);
-      wrap.appendChild(textEl("span", "bar-value", pct.toFixed(0) + "%"));
+      wrap.appendChild(textEl("span", "bar-value", displayValue));
       return wrap;
     }
 
@@ -397,12 +426,25 @@
       } else if (payload.scored !== true) {
         row.appendChild(badge("unscored"));
       } else {
+        // Bar fill is TRUE confidence (relevance_confidence / credibility_confidence);
+        // the number label next to it stays the 0-2 score itself. Falls back
+        // to score/2 as the fill when an older payload carries no confidence.
         var relevance = asNumber(payload.relevance);
+        var relevanceConfidence = asNumber(payload.relevance_confidence);
         var credibility = asNumber(payload.credibility);
+        var credibilityConfidence = asNumber(payload.credibility_confidence);
         var worthFetching = asNumber(payload.worth_fetching);
-        if (relevance !== undefined) row.appendChild(makeBar("relevance", relevance / 2));
-        if (credibility !== undefined) row.appendChild(makeBar("credibility", credibility / 2));
-        if (worthFetching !== undefined) row.appendChild(makeBar("worth fetching", worthFetching));
+        if (relevance !== undefined) {
+          var relevanceFill = relevanceConfidence !== undefined ? relevanceConfidence : relevance / 2;
+          row.appendChild(makeBar("relevance", relevanceFill, relevance.toFixed(2)));
+        }
+        if (credibility !== undefined) {
+          var credibilityFill = credibilityConfidence !== undefined ? credibilityConfidence : credibility / 2;
+          row.appendChild(makeBar("credibility", credibilityFill, credibility.toFixed(2)));
+        }
+        if (worthFetching !== undefined) {
+          row.appendChild(makeBar("worth fetching", worthFetching, Math.round(worthFetching * 100) + "%"));
+        }
       }
       return row;
     }
@@ -423,7 +465,23 @@
       return row;
     }
 
+    function renderBudgetRow(payload) {
+      var row = textEl("div", "row budget-row");
+      var limit = asString(payload.limit, "budget");
+      row.appendChild(textEl("div", "row-title", "budget exhausted: " + limit));
+      return row;
+    }
+
     function renderFetchRow(payload) {
+      if (payload.ok === false) {
+        var refusedRow = textEl("div", "row fetch-row refused-row");
+        var refusedLabel = asString(payload.url, "(unknown url)");
+        refusedRow.appendChild(textEl("div", "row-title", refusedLabel));
+        refusedRow.appendChild(badge("refused: " + asString(payload.reason, "unknown"), "badge-refused"));
+        var detail = asString(payload.detail, undefined);
+        if (detail) refusedRow.appendChild(textEl("div", "row-reasons", detail));
+        return refusedRow;
+      }
       var row = textEl("div", "row fetch-row");
       var label = asString(payload.finalUrl, asString(payload.url, "(unknown url)"));
       row.appendChild(textEl("div", "row-title", label));
@@ -495,6 +553,7 @@
           if (record.type === "result") childrenEl.appendChild(renderResultRow(payload));
           else if (record.type === "gate") childrenEl.appendChild(renderGateRow(payload));
           else if (record.type === "fetch") childrenEl.appendChild(renderFetchRow(payload));
+          else if (record.type === "budget") childrenEl.appendChild(renderBudgetRow(payload));
           else childrenEl.appendChild(renderGenericRow(record));
         }
         groupEl.appendChild(childrenEl);

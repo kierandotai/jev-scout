@@ -14,7 +14,6 @@ export interface Config {
   readonly backend: BackendName | undefined;
   readonly searxngUrl: string | undefined;
   readonly braveApiKey: string | undefined;
-  readonly openrouterApiKey: string | undefined;
   readonly mode: GateMode;
   readonly maxCalls: number;
   readonly maxSpendUsd: number;
@@ -71,7 +70,6 @@ function buildConfig(env: NodeJS.ProcessEnv): Config {
     backend: parseBackend(env.JEV_SCOUT_BACKEND),
     searxngUrl: parseNonEmpty(env.SEARXNG_URL),
     braveApiKey: parseNonEmpty(env.BRAVE_API_KEY),
-    openrouterApiKey: parseNonEmpty(env.OPENROUTER_API_KEY),
     mode: parseMode(env.JEV_SCOUT_MODE),
     maxCalls: parseInteger(env.JEV_SCOUT_MAX_CALLS, 300, "JEV_SCOUT_MAX_CALLS"),
     maxSpendUsd: parseNumber(env.JEV_SCOUT_MAX_SPEND_USD, 0.05, "JEV_SCOUT_MAX_SPEND_USD"),

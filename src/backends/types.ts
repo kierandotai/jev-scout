@@ -35,6 +35,11 @@ export class BackendError extends Error {
  * clear on its own (e.g. HTTP 429, or DDG's anomaly-detection challenge).
  * Always retryable.
  */
+/** True for AbortSignal.timeout() rejections (AbortError pre-timeout, TimeoutError after). */
+export function isAbortError(err: unknown): boolean {
+  return err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
+}
+
 export class SoftRateLimitError extends BackendError {
   constructor(message: string, backend: string, options: BackendErrorOptions = {}) {
     super(message, backend, { ...options, retryable: options.retryable ?? true });

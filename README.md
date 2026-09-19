@@ -174,6 +174,41 @@ even before exhaustion.
   distinct from a Jev failure, since it means "not judged because we ran out
   of budget," not "Jev errored."
 
+  **Gate decisions are never invisible.** Every `guarded_search` response
+  carries a `dropped` array — one entry per gate-dropped result (threshold
+  drops and beyond-cap truncation alike), each with its `url`, `domain`, and
+  `reasons`. `research_report` additionally carries the live `mode` and
+  `thresholds` (`min_relevance`/`min_credibility`) it evaluated against, and
+  every tool's own description is generated with the process's current mode
+  and thresholds baked in at startup — so an agent (or a human reading tool
+  descriptions) never has to guess what got filtered or why.
+
+## Security notes
+
+- **SSRF guard scope.** `guarded_fetch` resolves and classifies a hostname's
+  address(es) *before* any connection is opened, on the initial URL and again
+  on every redirect hop's `Location` header (manual redirects, capped).
+  Forbidden ranges include loopback, RFC1918 private, link-local (including
+  the `169.254.169.254` cloud metadata address), CGNAT (`100.64.0.0/10`),
+  IPv6 unique-local, NAT64 (`64:ff9b::/96`), and IPv4-mapped/-compatible IPv6
+  addresses that decode to any of the above. The guard runs fresh on each
+  hop, not just the first.
+- **DNS-rebinding window (documented, residual).** Immediately before the
+  actual network call, the guard re-resolves and re-classifies the same
+  hostname and rejects if the fresh address set is disjoint from (or itself
+  forbidden relative to) what was just vetted — this narrows, but does not
+  close, the window between "we checked this address" and "the platform
+  `fetch()` call resolves it again to actually connect." Fully closing that
+  window would require pinning the connection to the exact vetted address via
+  a custom HTTP dispatcher (e.g. undici) — out of scope under this project's
+  zero-dependency constraint. See `src/fetcher.ts`'s `revalidateBeforeFetch`
+  for the exact mechanics.
+- **Gate-mode visibility.** See "Gate decisions are never invisible" above —
+  the SSRF guard's own refusals (reason `ssrf`) surface through the same
+  `guarded_fetch` error payload as any other refusal, and gate-mode's
+  pre-fetch domain refusal (reason `gate_refused`) never makes a network call
+  at all.
+
 ## Golden set & drift
 
 ```sh
@@ -201,9 +236,16 @@ compares it to a pinned baseline:
 
 | Scope | Cost |
 |---|---|
-| Per search (default `JEV_SCOUT_MAX_JUDGED=8`) | ~9 Jev calls (8 results + 1 query judgment) ≈ $0.0001 total |
+| Per search (default `JEV_SCOUT_MAX_JUDGED=8`) | Up to 8 Jev calls — one per judged result (capped at `JEV_SCOUT_MAX_JUDGED`, cache hits make no call at all) ≈ $0.0001 total at the default cap |
+| Per fetch | 1 Jev call (answered + content_class + steering_risk in one call), skipped on budget exhaustion |
 | Per session (defaults: 300 calls / $0.05) | Capped at whichever limit fires first — the call cap, in practice |
 | Dashboard | Free — it's a local static HTML page over SSE, no external calls |
+
+`judge.ts` also defines `judgeQuery`/`on_task` (a query-level "is this search
+on task for the goal" judgment) — it exists as a documented, tested part of
+the `Judge` interface, but `pipeline.ts`'s `runSearch` does not currently call
+it. No query-level Jev call happens per search today; the cost table above
+reflects only the per-result and per-fetch calls the pipeline actually makes.
 
 ## Known jaggedness
 

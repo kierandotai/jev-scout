@@ -184,8 +184,8 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
     const credEntry = cache.getCredibility(result.domain, RUBRIC_VERSION);
 
     if (relEntry !== undefined && credEntry !== undefined) {
-      const relScores = relEntry.scores as unknown as CachedRelevanceScores;
-      const credScores = credEntry.scores as unknown as CachedCredibilityScores;
+      const relScores = relEntry.scores;
+      const credScores = credEntry.scores;
       const judgment: ResultJudgment = {
         relevance: relScores.relevance,
         credibility: credScores.credibility,

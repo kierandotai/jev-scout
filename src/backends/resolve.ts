@@ -3,7 +3,7 @@ import type { RawResult, SearchBackend } from "./types.ts";
 
 const TAG_RE = /<[^>]*>/g;
 const ENTITY_RE = /&[a-zA-Z#0-9]+;/g;
-const ENTITY_MAP: Record<string, string> = {
+export const ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",
   "&gt;": ">",
