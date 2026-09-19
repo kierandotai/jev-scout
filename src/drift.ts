@@ -396,6 +396,15 @@ async function main(): Promise<void> {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((err: unknown) => {
+    if (err instanceof Error && "status" in err && (err as { status?: number }).status === 402) {
+      console.error(
+        "BLOCKED ON CREDITS: the API key works but the provider account has no balance. " +
+          "Add credits (https://openrouter.ai/settings/credits) and re-run. " +
+          "At Jev pricing ($0.042/M input) even $5 covers ~100k+ searches.",
+      );
+      process.exitCode = 4;
+      return;
+    }
     console.error("[drift] fatal:", err);
     process.exitCode = 1;
   });

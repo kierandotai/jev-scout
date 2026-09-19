@@ -8,7 +8,8 @@
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "drift": "node --experimental-strip-types src/drift.ts"
+    "drift": "node --env-file-if-exists=.env --experimental-strip-types src/drift.ts",
+    "serve": "node --env-file-if-exists=.env --experimental-strip-types src/server-mcp.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30",
