@@ -41,14 +41,53 @@ the script:
    of stored raw when it's longer than 300 characters, mirroring
    `src/ledger.ts`'s own `contentHash()` convention.
 3. Any other `tool_name`, and malformed or empty stdin, produce no ledger
-   line at all.
+   line at all. A malformed/unparseable stdin payload additionally appends
+   one single-line diagnostic to `$JEV_SCOUT_LEDGER_DIR/hook-errors.log`
+   (still exiting `0` — see below).
 4. Exits `0` unconditionally — a hook must never block the tool call it's
    observing, so every failure path (bad JSON, missing `jq`, a ledger write
    error) is swallowed rather than surfaced as a nonzero exit.
 
 Parsing prefers `jq` when it's on `PATH`, and falls back to `node` (already
-a jev-scout prerequisite) when it isn't — either way the JSON line it writes
-is escaped correctly.
+a jev-scout prerequisite) when it isn't. Both paths implement the same
+extraction, redaction, and hashing rules and are expected to produce
+identical ledger lines (aside from the inherently per-invocation `ts` /
+`search_id` fields) for the same input — see `test/hooks.test.ts`'s
+jq-vs-node parity test. Neither path ever builds a shell command string out
+of tool-controlled input (query text, URLs), so control characters,
+`$(...)`, backticks, and the like in a query or URL cannot be interpreted
+by the shell — they round-trip into the ledger line as literal text (or get
+hashed, per the 300-char rule above) rather than being executed.
+
+### Credential redaction
+
+Before a `WebFetch` URL is logged (raw or hashed), it's redacted:
+
+- **Userinfo is stripped.** `https://user:pass@host/path` is logged as
+  `https://host/path` — a URL's embedded username/password never reaches
+  the ledger.
+- **Query strings are collapsed.** Any `?...` component is replaced with
+  the fixed marker `?<redacted>`, so a `?token=...`, `?api_key=...`, or any
+  other query parameter never reaches the ledger either. Only
+  scheme+host+path survive.
+
+This redaction applies to `WebFetch` URLs only. `WebSearch` queries are
+free text, not URLs, so they are not parsed or redacted this way — they
+rely solely on the 300-character inline/hash threshold above. (A query that
+happens to look like a credential-bearing URL is therefore logged verbatim
+if it's under 300 characters — search queries are Claude Code's own
+argument to `WebSearch`, not something jev-scout constructs or resolves.)
+
+### A note on the ledger filename's date
+
+`ledger-YYYY-MM-DD.jsonl` uses **UTC**, not local time (see the `date -u`
+call above), matching `src/ledger.ts`. Near local midnight — specifically
+whenever local time and UTC fall on different calendar dates — an event
+observed by this hook can land in a ledger file dated "yesterday" or
+"tomorrow" relative to your local wall clock. This is expected and
+consistent with how jev-scout's own ledger writer names files; if you're
+hunting for an event that "isn't showing up" in the file you expected right
+after local midnight, check the adjacent day's file too.
 
 ## What it does *not* do
 
@@ -103,7 +142,7 @@ makes sense for your setup.
 
 | Env var | Default | Meaning |
 |---|---|---|
-| `JEV_SCOUT_LEDGER_DIR` | `~/.jev-scout` | Directory the hook appends `ledger-YYYY-MM-DD.jsonl` lines to. Set this if jev-scout's own ledger lives somewhere non-default. |
+| `JEV_SCOUT_LEDGER_DIR` | `~/.jev-scout` | Directory the hook appends `ledger-YYYY-MM-DD.jsonl` lines to (and, on parse failures, `hook-errors.log`). Set this if jev-scout's own ledger lives somewhere non-default. Created with `0700` permissions if it doesn't already exist; a pre-existing symlink at this path is refused (the hook exits `0` without writing) rather than followed. |
 
 ## Testing it standalone
 

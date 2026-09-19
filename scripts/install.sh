@@ -29,6 +29,42 @@ JEV_CLIENT_REPO_URL="${JEV_CLIENT_REPO_URL:-https://github.com/kierandotai/jev-c
 log() { printf '==> %s\n' "$*"; }
 note() { printf '    note: %s\n' "$*"; }
 
+# Repo URL overrides are attacker-controlled input whenever this script is
+# invoked with a non-default environment (CI, a forked install one-liner,
+# etc.) — reject anything that isn't a plain https:// or git@ remote before
+# it's ever passed to `git clone`.
+validate_repo_url() {
+  local name="$1" repo_url="$2"
+  case "$repo_url" in
+    https://* | git@*) ;;
+    *)
+      echo "error: $name=\"$repo_url\" is not a valid repo URL — it must start" >&2
+      echo "       with 'https://' or 'git@'. Refusing to proceed." >&2
+      exit 1
+      ;;
+  esac
+}
+validate_repo_url "JEV_SCOUT_REPO_URL" "$JEV_SCOUT_REPO_URL"
+validate_repo_url "JEV_CLIENT_REPO_URL" "$JEV_CLIENT_REPO_URL"
+
+# npm ci when a lockfile exists (both jev-scout and jev-client ship
+# package-lock.json) for reproducible, verified installs; fall back to
+# npm install only when there's no lockfile to pin against.
+install_deps() {
+  local dir="$1"
+  if [ -f "$dir/package-lock.json" ]; then
+    (cd "$dir" && npm ci)
+  else
+    (cd "$dir" && npm install)
+  fi
+}
+
+# Read the current owner-only-readability of a file's permission bits in a
+# way that works on both BSD (macOS) and GNU stat.
+file_perms() {
+  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null || echo ""
+}
+
 command -v git >/dev/null 2>&1 || {
   echo "error: git is required and was not found on PATH." >&2
   exit 1
@@ -60,14 +96,29 @@ if [ -z "$JEV_SCOUT_DIR" ]; then
   if [ -d "jev-scout" ]; then
     JEV_SCOUT_DIR="$(cd jev-scout && pwd -P)"
     if [ -d "$JEV_SCOUT_DIR/.git" ]; then
+      origin_url="$(git -C "$JEV_SCOUT_DIR" remote get-url origin 2>/dev/null || true)"
+      if [ "$origin_url" != "$JEV_SCOUT_REPO_URL" ]; then
+        echo "error: ./jev-scout is a git checkout, but its 'origin' remote" >&2
+        echo "       ($origin_url) does not exactly match the expected repo" >&2
+        echo "       ($JEV_SCOUT_REPO_URL)." >&2
+        echo "       Refusing to reuse or build an unverified directory." >&2
+        echo "       Remove or rename ./jev-scout, or set JEV_SCOUT_REPO_URL" >&2
+        echo "       to match its origin, then re-run." >&2
+        exit 1
+      fi
       log "jev-scout already present at $JEV_SCOUT_DIR — updating"
       git -C "$JEV_SCOUT_DIR" pull --ff-only || note "could not fast-forward jev-scout; leaving local changes as-is"
     else
-      note "./jev-scout exists but isn't a git checkout — using it as-is"
+      echo "error: ./jev-scout exists but is not a git checkout of" >&2
+      echo "       $JEV_SCOUT_REPO_URL." >&2
+      echo "       Refusing to build an unverified directory. Remove or" >&2
+      echo "       rename ./jev-scout and re-run to clone fresh." >&2
+      exit 1
     fi
   else
     log "Cloning jev-scout..."
-    git clone "$JEV_SCOUT_REPO_URL" jev-scout
+    log "  from: $JEV_SCOUT_REPO_URL"
+    git clone -- "$JEV_SCOUT_REPO_URL" jev-scout
     JEV_SCOUT_DIR="$(cd jev-scout && pwd -P)"
   fi
 fi
@@ -81,22 +132,38 @@ log "jev-scout: $JEV_SCOUT_DIR"
 JEV_CLIENT_DIR="$(dirname "$JEV_SCOUT_DIR")/jev-client"
 
 if [ -d "$JEV_CLIENT_DIR/.git" ]; then
+  origin_url="$(git -C "$JEV_CLIENT_DIR" remote get-url origin 2>/dev/null || true)"
+  if [ "$origin_url" != "$JEV_CLIENT_REPO_URL" ]; then
+    echo "error: $JEV_CLIENT_DIR is a git checkout, but its 'origin' remote" >&2
+    echo "       ($origin_url) does not exactly match the expected repo" >&2
+    echo "       ($JEV_CLIENT_REPO_URL)." >&2
+    echo "       Refusing to reuse or build an unverified directory." >&2
+    echo "       Remove or rename $JEV_CLIENT_DIR, or set" >&2
+    echo "       JEV_CLIENT_REPO_URL to match its origin, then re-run." >&2
+    exit 1
+  fi
   log "jev-client already present at $JEV_CLIENT_DIR — updating"
   git -C "$JEV_CLIENT_DIR" pull --ff-only || note "could not fast-forward jev-client; leaving local changes as-is"
 elif [ -d "$JEV_CLIENT_DIR" ]; then
-  note "$JEV_CLIENT_DIR exists but isn't a git checkout — using it as-is"
+  echo "error: $JEV_CLIENT_DIR exists but is not a git checkout of" >&2
+  echo "       $JEV_CLIENT_REPO_URL." >&2
+  echo "       Refusing to build an unverified directory. Remove or" >&2
+  echo "       rename it and re-run to clone fresh." >&2
+  exit 1
 else
   log "Cloning jev-client..."
-  git clone "$JEV_CLIENT_REPO_URL" "$JEV_CLIENT_DIR"
+  log "  from: $JEV_CLIENT_REPO_URL"
+  git clone -- "$JEV_CLIENT_REPO_URL" "$JEV_CLIENT_DIR"
 fi
 
 log "Building jev-client..."
-(cd "$JEV_CLIENT_DIR" && npm install && npm run build)
+install_deps "$JEV_CLIENT_DIR"
+(cd "$JEV_CLIENT_DIR" && npm run build)
 
 # --- 3. jev-scout deps --------------------------------------------------------
 
 log "Installing jev-scout dependencies..."
-(cd "$JEV_SCOUT_DIR" && npm install)
+install_deps "$JEV_SCOUT_DIR"
 
 # --- 4. Register the MCP server ----------------------------------------------
 
@@ -132,7 +199,18 @@ ENV_EXAMPLE="$JEV_SCOUT_DIR/.env.example"
 
 if [ ! -f "$ENV_FILE" ] && [ -f "$ENV_EXAMPLE" ]; then
   cp "$ENV_EXAMPLE" "$ENV_FILE"
-  log "Created $ENV_FILE from .env.example"
+  chmod 600 "$ENV_FILE"
+  log "Created $ENV_FILE from .env.example (permissions set to 600)"
+fi
+
+# .env holds secrets (OPENROUTER_API_KEY / TYPESAFE_API_KEY) — never leave it
+# group- or other-readable, whether we just created it or it pre-existed.
+if [ -f "$ENV_FILE" ]; then
+  env_perms="$(file_perms "$ENV_FILE")"
+  if [ -n "$env_perms" ] && [ "${env_perms: -2}" != "00" ]; then
+    chmod 600 "$ENV_FILE"
+    note "$ENV_FILE was group/other-readable — tightened permissions to 600."
+  fi
 fi
 
 has_key() {
