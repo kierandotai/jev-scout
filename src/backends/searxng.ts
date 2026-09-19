@@ -11,12 +11,23 @@ interface SearxngResponse {
   results?: SearxngResult[];
 }
 
+export interface SearxngBackendOptions {
+  /** Fetch timeout (ms) for each SearXNG request, via AbortSignal.timeout(). Default 15000. */
+  timeoutMs?: number;
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
+}
+
 export class SearxngBackend implements SearchBackend {
   readonly name = "searxng";
   readonly #baseUrl: string;
+  readonly #timeoutMs: number;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string, options: SearxngBackendOptions = {}) {
     this.#baseUrl = baseUrl.replace(/\/+$/, "");
+    this.#timeoutMs = options.timeoutMs ?? 15_000;
   }
 
   async search(query: string, count: number): Promise<RawResult[]> {
@@ -24,7 +35,21 @@ export class SearxngBackend implements SearchBackend {
     url.searchParams.set("q", query);
     url.searchParams.set("format", "json");
 
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(this.#timeoutMs),
+      });
+    } catch (err) {
+      if (isAbortError(err)) {
+        throw new BackendError(`SearXNG request timed out after ${this.#timeoutMs}ms`, this.name, {
+          retryable: true,
+          cause: err,
+        });
+      }
+      throw err;
+    }
 
     if (res.status === 429) {
       throw new SoftRateLimitError("SearXNG rate-limited the request (429)", this.name);

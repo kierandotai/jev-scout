@@ -80,9 +80,13 @@ test("threshold change between two calls re-evaluates the same judgment: drop th
 // preFetchGate
 // ---------------------------------------------------------------------------
 
-function credEntry(score: number, confidence = 0.9): CacheEntry {
-  const scores: CachedCredibilityScores = { credibility: { score, confidence, probabilities: {} } };
-  return { scores: scores as unknown as Record<string, unknown>, confidence, rubric_version: RUBRIC_VERSION, judged_at: 0 };
+function credEntry(score: number, confidence = 0.9): CacheEntry<CachedCredibilityScores> {
+  return {
+    scores: { credibility: { score, confidence, probabilities: {} } },
+    confidence,
+    rubric_version: RUBRIC_VERSION,
+    judged_at: 0,
+  };
 }
 
 test("preFetchGate always allows in annotate mode, even with a low cached credibility", () => {

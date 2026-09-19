@@ -8,7 +8,7 @@
  *    whole page, never an arbitrary object. `judgeResult` sends
  *    `{goal?, query, result:{title, snippet, domain}}`; `judgePage` sends
  *    `{goal?, url, excerpt}` with the excerpt already truncated by the caller.
- * 2. **Injection-aware framing.** Every untrusted field (title, snippet,
+ * 2. **Injection-aware framing.** Every untrusted field (title, snippet, url,
  *    excerpt) is wrapped in explicit delimiters, and every question carries the
  *    same `data_handling` clause saying delimited text is data to evaluate,
  *    never instructions to follow. This narrows the steering channel; it does
@@ -33,7 +33,7 @@ import {
  * Bump on ANY rubric wording change (instructions, levels, criteria).
  * Cache entries and drift baselines are keyed on this value.
  */
-export const RUBRIC_VERSION = "1.0.0";
+export const RUBRIC_VERSION = "1.1.0";
 
 // ---------------------------------------------------------------------------
 // Untrusted-content framing
@@ -256,7 +256,11 @@ function pageState(input: JudgePageInput): Record<string, unknown> {
   const goal = usableGoal(input.goal);
   return {
     ...(goal === undefined ? {} : { goal }),
-    url: input.url,
+    // Defense in depth: fetcher.ts canonicalizes the URL (neutralizing raw
+    // delimiter bytes), but the URL still originates from an untrusted page
+    // (redirect targets, page-authored links) — wrap it the same way as
+    // every other untrusted field rather than trusting canonicalization alone.
+    url: wrapUntrusted(input.url),
     excerpt: wrapUntrusted(input.excerpt),
   };
 }

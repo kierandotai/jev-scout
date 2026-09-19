@@ -55,6 +55,13 @@ export interface LedgerEvent {
   readonly payload: Record<string, unknown> | { readonly omitted: true };
   readonly jev?: LedgerJev | undefined;
   readonly latency_ms?: number | undefined;
+  /**
+   * Present and `false` only when this event failed to persist to disk (e.g.
+   * ENOSPC/EACCES). `append()` never throws — on a write failure it still
+   * returns the event object, just marked unpersisted, so callers never lose
+   * an already-paid-for judgment mid-loop.
+   */
+  readonly persisted?: boolean;
 }
 
 export interface LedgerOptions {
@@ -99,28 +106,57 @@ export function createLedger(dir: string = defaultDir(), options: LedgerOptions 
   const maxBytesPerDay = options.maxBytesPerDay ?? DEFAULT_MAX_BYTES_PER_DAY;
   const emitter = new EventEmitter() as Ledger;
 
+  // Rate-limit the failure warning to once per ledger instance — a run stuck
+  // on a full/read-only disk would otherwise spam stderr once per event.
+  let warnedOnStderr = false;
+
   function filePathForToday(): string {
     return path.join(dir, `ledger-${dateStamp(new Date())}.jsonl`);
   }
 
   emitter.append = (input: LedgerEventInput): LedgerEvent => {
-    const filePath = filePathForToday();
-    fs.mkdirSync(dir, { recursive: true });
+    const ts = new Date().toISOString();
+    try {
+      const filePath = filePathForToday();
+      fs.mkdirSync(dir, { recursive: true });
 
-    const overCap = fileSize(filePath) >= maxBytesPerDay;
-    const record: LedgerEvent = {
-      ts: new Date().toISOString(),
-      session: input.session,
-      search_id: input.search_id,
-      type: input.type,
-      payload: overCap ? { omitted: true } : input.payload,
-      ...(input.jev === undefined ? {} : { jev: input.jev }),
-      ...(input.latency_ms === undefined ? {} : { latency_ms: input.latency_ms }),
-    };
+      const overCap = fileSize(filePath) >= maxBytesPerDay;
+      const record: LedgerEvent = {
+        ts,
+        session: input.session,
+        search_id: input.search_id,
+        type: input.type,
+        payload: overCap ? { omitted: true } : input.payload,
+        ...(input.jev === undefined ? {} : { jev: input.jev }),
+        ...(input.latency_ms === undefined ? {} : { latency_ms: input.latency_ms }),
+      };
 
-    fs.appendFileSync(filePath, `${JSON.stringify(record)}\n`, "utf8");
-    emitter.emit("event", record);
-    return record;
+      fs.appendFileSync(filePath, `${JSON.stringify(record)}\n`, "utf8");
+      emitter.emit("event", record);
+      return record;
+    } catch (err) {
+      // append() must never throw — a full or read-only disk mid-loop would
+      // otherwise discard already-paid-for Jev judgments. Warn once, then
+      // keep returning event objects so callers (unchanged) keep working.
+      if (!warnedOnStderr) {
+        warnedOnStderr = true;
+        process.stderr.write(
+          `jev-scout: ledger append failed, continuing without persistence: ${String(err)}\n`,
+        );
+      }
+      const record: LedgerEvent = {
+        ts,
+        session: input.session,
+        search_id: input.search_id,
+        type: input.type,
+        payload: input.payload,
+        ...(input.jev === undefined ? {} : { jev: input.jev }),
+        ...(input.latency_ms === undefined ? {} : { latency_ms: input.latency_ms }),
+        persisted: false,
+      };
+      emitter.emit("event", record);
+      return record;
+    }
   };
 
   emitter.todaySpend = (): number => {

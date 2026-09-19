@@ -174,6 +174,197 @@ test("ddg backend treats anomaly markers in a 200 body as an anomaly challenge",
   );
 });
 
+test("ddg backend: a hung fetch times out and releases the serialization queue for the next caller", async () => {
+  let callCount = 0;
+  const fetchStub = (async (_input: unknown, init?: RequestInit) => {
+    callCount++;
+    if (callCount === 1) {
+      // Simulate a request that never resolves on its own, but honors the
+      // abort signal the way real fetch() would once AbortSignal.timeout() fires.
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("The operation was aborted.", "TimeoutError"));
+        });
+      });
+    }
+    return new Response(DDG_HTML_FIXTURE, { status: 200 });
+  }) as typeof fetch;
+
+  await withStubbedFetch(fetchStub, async () => {
+    const backend = new DuckDuckGoBackend({ minDelayMs: 0, maxDelayMs: 0, timeoutMs: 20 });
+
+    const first = backend.search("hung query", 5);
+    const second = backend.search("second query", 5);
+
+    await assert.rejects(first, (err: unknown) => {
+      assert.ok(err instanceof BackendError);
+      assert.equal(err.retryable, true);
+      assert.match(err.message, /timed out/i);
+      return true;
+    });
+
+    // The queue must have been released by the timeout-induced rejection —
+    // the second caller should still complete rather than hang forever.
+    const results = await second;
+    assert.equal(results.length, 1);
+    assert.equal(results[0]!.url, "https://example.com/ddg");
+  });
+});
+
+test("ddg backend: serialization queue caps parked callers; the overflow caller fails fast", async () => {
+  const fetchStub = (async (_input: unknown, init?: RequestInit) => {
+    return new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "TimeoutError"));
+      });
+    });
+  }) as typeof fetch;
+
+  await withStubbedFetch(fetchStub, async () => {
+    const backend = new DuckDuckGoBackend({ minDelayMs: 0, maxDelayMs: 0, timeoutMs: 20 });
+
+    // Fill the queue: one caller running, seven more parked behind it (the
+    // module-level queue caps at 8 parked callers).
+    const parked = Array.from({ length: 8 }, (_, i) => backend.search(`q${i}`, 5));
+
+    // The next caller arrives while 8 are already parked and must fail fast,
+    // synchronously, without waiting on any timeout.
+    const overflow = backend.search("overflow", 5);
+    await assert.rejects(overflow, SoftRateLimitError);
+
+    // Let the parked callers drain via their timeouts so no dangling state
+    // leaks into later tests.
+    for (const p of parked) {
+      await assert.rejects(p, BackendError);
+    }
+  });
+});
+
+const DDG_MISSING_SNIPPET_FIXTURE = `
+<div class="results">
+  <div class="result results_links results_links_deep web-result">
+    <div class="links_main links_deep result__body">
+      <h2 class="result__title">
+        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fone&amp;rut=a">First Result</a>
+      </h2>
+    </div>
+  </div>
+  <div class="result results_links results_links_deep web-result">
+    <div class="links_main links_deep result__body">
+      <h2 class="result__title">
+        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Ftwo&amp;rut=b">Second Result</a>
+      </h2>
+      <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Ftwo&amp;rut=b">Snippet for second result.</a>
+    </div>
+  </div>
+  <div class="result results_links results_links_deep web-result">
+    <div class="links_main links_deep result__body">
+      <h2 class="result__title">
+        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fthree&amp;rut=c">Third Result</a>
+      </h2>
+      <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fthree&amp;rut=c">Snippet for third result.</a>
+    </div>
+  </div>
+</div>
+`;
+
+test("ddg backend: a result with no snippet does not misalign snippets for the following results", async () => {
+  await withStubbedFetch(
+    (async () => new Response(DDG_MISSING_SNIPPET_FIXTURE, { status: 200 })) as typeof fetch,
+    async () => {
+      const backend = new DuckDuckGoBackend({ minDelayMs: 0, maxDelayMs: 0 });
+      const results = await backend.search("q", 10);
+      assert.equal(results.length, 3);
+      assert.deepEqual(
+        results.map((r) => [r.title, r.url, r.snippet]),
+        [
+          ["First Result", "https://example.com/one", ""],
+          ["Second Result", "https://example.com/two", "Snippet for second result."],
+          ["Third Result", "https://example.com/three", "Snippet for third result."],
+        ],
+      );
+    },
+  );
+});
+
+const DDG_AD_BLOCK_FIXTURE = `
+<div class="results">
+  <div class="result result--ad result--ad--visited">
+    <div class="links_main links_deep result__body">
+      <h2 class="result__title">
+        <a rel="nofollow sponsored" class="result__a" href="//duckduckgo.com/y.js?ad_provider=bing&amp;ad_domain=sponsor.example.com">Sponsored Ad Title</a>
+      </h2>
+      <a class="result__snippet" href="//duckduckgo.com/y.js?ad_provider=bing">Sponsored snippet text.</a>
+    </div>
+  </div>
+  <div class="result results_links results_links_deep web-result">
+    <div class="links_main links_deep result__body">
+      <h2 class="result__title">
+        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Forganic&amp;rut=z">Organic Result</a>
+      </h2>
+      <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Forganic&amp;rut=z">Organic snippet.</a>
+    </div>
+  </div>
+</div>
+`;
+
+test("ddg backend: ad result blocks (result--ad class / y.js hrefs) are skipped", async () => {
+  await withStubbedFetch(
+    (async () => new Response(DDG_AD_BLOCK_FIXTURE, { status: 200 })) as typeof fetch,
+    async () => {
+      const backend = new DuckDuckGoBackend({ minDelayMs: 0, maxDelayMs: 0 });
+      const results = await backend.search("q", 10);
+      assert.equal(results.length, 1);
+      assert.equal(results[0]!.title, "Organic Result");
+      assert.equal(results[0]!.url, "https://example.com/organic");
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Brave / SearXNG: fetch timeout wiring
+// ---------------------------------------------------------------------------
+
+test("brave backend maps a timed-out fetch to a retryable BackendError", async () => {
+  const fetchStub = (async (_input: unknown, init?: RequestInit) => {
+    return new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "TimeoutError"));
+      });
+    });
+  }) as typeof fetch;
+
+  await withStubbedFetch(fetchStub, async () => {
+    const backend = new BraveBackend("test-key", { timeoutMs: 20 });
+    await assert.rejects(() => backend.search("q", 5), (err: unknown) => {
+      assert.ok(err instanceof BackendError);
+      assert.equal(err.retryable, true);
+      assert.match(err.message, /timed out/i);
+      return true;
+    });
+  });
+});
+
+test("searxng backend maps a timed-out fetch to a retryable BackendError", async () => {
+  const fetchStub = (async (_input: unknown, init?: RequestInit) => {
+    return new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "TimeoutError"));
+      });
+    });
+  }) as typeof fetch;
+
+  await withStubbedFetch(fetchStub, async () => {
+    const backend = new SearxngBackend("http://localhost:8080", { timeoutMs: 20 });
+    await assert.rejects(() => backend.search("q", 5), (err: unknown) => {
+      assert.ok(err instanceof BackendError);
+      assert.equal(err.retryable, true);
+      assert.match(err.message, /timed out/i);
+      return true;
+    });
+  });
+});
+
 // ---------------------------------------------------------------------------
 // resolve.ts: normalization + dedupe
 // ---------------------------------------------------------------------------

@@ -11,12 +11,23 @@ interface BraveResponse {
   web?: { results?: BraveResult[] };
 }
 
+export interface BraveBackendOptions {
+  /** Fetch timeout (ms) for each Brave request, via AbortSignal.timeout(). Default 15000. */
+  timeoutMs?: number;
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError");
+}
+
 export class BraveBackend implements SearchBackend {
   readonly name = "brave";
   readonly #apiKey: string;
+  readonly #timeoutMs: number;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, options: BraveBackendOptions = {}) {
     this.#apiKey = apiKey;
+    this.#timeoutMs = options.timeoutMs ?? 15_000;
   }
 
   async search(query: string, count: number): Promise<RawResult[]> {
@@ -24,12 +35,24 @@ export class BraveBackend implements SearchBackend {
     url.searchParams.set("q", query);
     url.searchParams.set("count", String(count));
 
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": this.#apiKey,
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "X-Subscription-Token": this.#apiKey,
+        },
+        signal: AbortSignal.timeout(this.#timeoutMs),
+      });
+    } catch (err) {
+      if (isAbortError(err)) {
+        throw new BackendError(`Brave request timed out after ${this.#timeoutMs}ms`, this.name, {
+          retryable: true,
+          cause: err,
+        });
+      }
+      throw err;
+    }
 
     if (res.status === 429) {
       throw new SoftRateLimitError("Brave rate-limited the request (429)", this.name);

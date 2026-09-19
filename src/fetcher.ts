@@ -51,8 +51,11 @@ function isForbiddenIPv4(ip: string): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 — private
   if (a === 192 && b === 168) return true; // 192.168.0.0/16 — private
   if (a === 169 && b === 254) return true; // 169.254.0.0/16 — link-local (incl. cloud metadata)
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 — CGNAT shared address space
+  if (a === 192 && b === 0 && c === 0) return true; // 192.0.0.0/24 — IETF protocol assignments
+  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15 — benchmarking
   if (a >= 224 && a <= 239) return true; // 224.0.0.0/4 — multicast
-  if (a === 255 && b === 255 && c === 255 && d === 255) return true; // broadcast
+  if (a >= 240) return true; // 240.0.0.0/4 — reserved for future use (includes 255.255.255.255 broadcast)
   return false;
 }
 
@@ -108,10 +111,13 @@ function isForbiddenIPv6(ip: string): boolean {
   const hextets = expandIPv6Hextets(ip);
   if (hextets === undefined) return true;
 
-  // IPv4-mapped: ::ffff:a.b.c.d — defer to the IPv4 rules for the embedded address.
+  // IPv4-mapped (::ffff:a.b.c.d/96) and IPv4-compatible (::a.b.c.d/96,
+  // deprecated) — both embed an IPv4 address in the low 32 bits. Decode the
+  // whole ::/96 block (hextet 5 is 0 or 0xffff) through the IPv4 classifier
+  // rather than blanket-forbidding it, since e.g. ::203.0.113.5 is public.
   if (
     hextets[0] === 0 && hextets[1] === 0 && hextets[2] === 0 && hextets[3] === 0 &&
-    hextets[4] === 0 && hextets[5] === 0xffff
+    hextets[4] === 0 && (hextets[5] === 0 || hextets[5] === 0xffff)
   ) {
     const h6 = hextets[6]!;
     const h7 = hextets[7]!;
@@ -120,6 +126,17 @@ function isForbiddenIPv6(ip: string): boolean {
     const c = (h7 >> 8) & 0xff;
     const d = h7 & 0xff;
     return isForbiddenIPv4(`${a}.${b}.${c}.${d}`);
+  }
+
+  // 64:ff9b::/96 — the well-known NAT64 translation prefix. Blanket-forbidden
+  // (not decoded): its entire purpose is synthesizing IPv6 addresses from
+  // arbitrary IPv4 ones at the resolver, so the embedded address cannot be
+  // trusted as a proxy for what the classifier would say about it directly.
+  if (
+    hextets[0] === 0x0064 && hextets[1] === 0xff9b && hextets[2] === 0 &&
+    hextets[3] === 0 && hextets[4] === 0 && hextets[5] === 0
+  ) {
+    return true;
   }
 
   if (hextets.every((h) => h === 0)) return true; // :: — unspecified
@@ -148,35 +165,67 @@ export type LookupFn = (
 
 const defaultLookup: LookupFn = (hostname, options) => dns.lookup(hostname, options);
 
-type GuardResult = { readonly ok: true } | { readonly ok: false; readonly reason: "protocol" | "ssrf"; readonly detail: string };
+/**
+ * The host this hop was vetted against, kept around so the pre-fetch
+ * recheck (below) has something to compare its fresh lookup to.
+ */
+type VettedHost =
+  | { readonly kind: "literal"; readonly address: string }
+  | { readonly kind: "resolved"; readonly hostname: string; readonly addresses: ReadonlySet<string> };
 
-async function guardUrl(rawUrl: string, lookup: LookupFn): Promise<GuardResult> {
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    return { ok: false, reason: "protocol", detail: `unparseable URL: ${rawUrl}` };
-  }
+type GuardResult =
+  | { readonly ok: true; readonly vetted: VettedHost }
+  | { readonly ok: false; readonly reason: "protocol" | "ssrf"; readonly detail: string };
+
+/** Strip a bracketed IPv6 literal's `[...]` so it reaches `isIP`/`isForbiddenAddress` unwrapped. */
+function unbracket(hostname: string): string {
+  return hostname.length >= 2 && hostname.startsWith("[") && hostname.endsWith("]")
+    ? hostname.slice(1, -1)
+    : hostname;
+}
+
+/**
+ * Classify `parsed`'s host. Protocol must already have been checked by the
+ * caller alongside canonicalization — this only resolves/classifies the
+ * address(es). Does NOT itself hit the network beyond DNS.
+ */
+async function guardUrl(parsed: URL, lookup: LookupFn): Promise<GuardResult> {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     return { ok: false, reason: "protocol", detail: `unsupported protocol: ${parsed.protocol}` };
   }
 
   const hostname = parsed.hostname;
-  if (isIP(hostname) !== 0) {
-    if (isForbiddenAddress(hostname)) {
-      return { ok: false, reason: "ssrf", detail: `forbidden address literal: ${hostname}` };
+  // Bracketed IPv6 literals (e.g. "[::1]") must be unwrapped before isIP
+  // sees them — otherwise they fail isIP, fall through to the DNS-lookup
+  // path below, and fail closed via ENOTFOUND instead of being classified
+  // directly.
+  const literalCandidate = unbracket(hostname);
+  if (isIP(literalCandidate) !== 0) {
+    if (isForbiddenAddress(literalCandidate)) {
+      return { ok: false, reason: "ssrf", detail: `forbidden address literal: ${literalCandidate}` };
     }
-    return { ok: true };
+    return { ok: true, vetted: { kind: "literal", address: literalCandidate } };
   }
 
+  const addrs = await resolveAndClassify(hostname, lookup, "DNS lookup");
+  if (!addrs.ok) return addrs;
+  return { ok: true, vetted: { kind: "resolved", hostname, addresses: new Set(addrs.addresses) } };
+}
+
+/** Shared resolve+classify used by both the initial guard and the pre-fetch recheck. */
+async function resolveAndClassify(
+  hostname: string,
+  lookup: LookupFn,
+  label: string,
+): Promise<{ readonly ok: true; readonly addresses: string[] } | { readonly ok: false; readonly reason: "ssrf"; readonly detail: string }> {
   let addrs: { address: string; family: number }[];
   try {
     addrs = await lookup(hostname, { all: true });
   } catch (err) {
-    return { ok: false, reason: "ssrf", detail: `DNS lookup failed for ${hostname}: ${String(err)}` };
+    return { ok: false, reason: "ssrf", detail: `${label} failed for ${hostname}: ${String(err)}` };
   }
   if (addrs.length === 0) {
-    return { ok: false, reason: "ssrf", detail: `DNS lookup returned no addresses for ${hostname}` };
+    return { ok: false, reason: "ssrf", detail: `${label} returned no addresses for ${hostname}` };
   }
   const forbidden = addrs.find((a) => isForbiddenAddress(a.address));
   if (forbidden !== undefined) {
@@ -184,6 +233,50 @@ async function guardUrl(rawUrl: string, lookup: LookupFn): Promise<GuardResult> 
       ok: false,
       reason: "ssrf",
       detail: `${hostname} resolves to forbidden address ${forbidden.address}`,
+    };
+  }
+  return { ok: true, addresses: addrs.map((a) => a.address) };
+}
+
+/**
+ * DNS-rebinding TOCTOU mitigation. `guardUrl` classifies via one DNS lookup;
+ * the platform `fetch()` call below then resolves the hostname AGAIN,
+ * independently, when it actually opens the connection — an attacker
+ * controlling the DNS answer for `hostname` can flip it to a forbidden
+ * address in between. Zero-dep constraint rules out a custom dispatcher
+ * (undici) that would let us pin the connection to the exact address we
+ * vetted, so full closure of the race is out of scope here (documented in
+ * README). This re-runs the lookup immediately before the fetch call and
+ * rejects if anything changed: a newly-resolved address is itself forbidden,
+ * or the fresh address set shares nothing with the vetted one (a strong
+ * rebinding signal even when every individual new address looks "clean").
+ * This narrows the window from "guard to whenever fetch() resolves" down to
+ * milliseconds — it does not eliminate it.
+ */
+async function revalidateBeforeFetch(
+  vetted: VettedHost,
+  lookup: LookupFn,
+): Promise<{ readonly ok: true } | { readonly ok: false; readonly reason: "ssrf"; readonly detail: string }> {
+  if (vetted.kind === "literal") {
+    // No DNS involved for a literal — re-run the pure classification anyway
+    // as cheap, harmless defense in depth.
+    if (isForbiddenAddress(vetted.address)) {
+      return { ok: false, reason: "ssrf", detail: `forbidden address literal: ${vetted.address}` };
+    }
+    return { ok: true };
+  }
+
+  const result = await resolveAndClassify(vetted.hostname, lookup, "pre-fetch DNS re-check");
+  if (!result.ok) return result;
+
+  const disjoint = result.addresses.every((addr) => !vetted.addresses.has(addr));
+  if (disjoint) {
+    return {
+      ok: false,
+      reason: "ssrf",
+      detail:
+        `${vetted.hostname} re-resolved to an address set disjoint from the one vetted moments earlier ` +
+        `(possible DNS rebinding): vetted=[${[...vetted.addresses].join(", ")}], now=[${result.addresses.join(", ")}]`,
     };
   }
   return { ok: true };
@@ -313,9 +406,25 @@ export async function fetchPage(url: string, opts: FetchPageOptions = {}): Promi
   let hopsFollowed = 0;
 
   for (;;) {
+    let parsed: URL;
+    try {
+      parsed = new URL(currentUrl);
+    } catch {
+      return { ok: false, reason: "protocol", detail: `unparseable URL: ${currentUrl}` };
+    }
+    // Canonicalize this hop to the WHATWG-normalized, percent-encoded form.
+    // This alone neutralizes delimiter bytes (e.g. "<", ">") an attacker
+    // embeds in the URL, before finalUrl ever reaches judge.ts's untrusted
+    // state wrapping.
+    currentUrl = parsed.toString();
+
     // SSRF guard FIRST — nothing below this line runs until the hop clears it.
-    const guard = await guardUrl(currentUrl, lookup);
+    const guard = await guardUrl(parsed, lookup);
     if (!guard.ok) return { ok: false, reason: guard.reason, detail: guard.detail };
+
+    // Re-check immediately before the network call — see revalidateBeforeFetch.
+    const recheck = await revalidateBeforeFetch(guard.vetted, lookup);
+    if (!recheck.ok) return { ok: false, reason: recheck.reason, detail: recheck.detail };
 
     let res: Response;
     try {

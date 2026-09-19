@@ -16,6 +16,7 @@
  */
 
 import { sha256Hex } from "./hash.ts";
+import type { NoulJudgment, ScoreJudgment } from "./judge.ts";
 
 /** A cached judgment: raw scores only. Gate thresholds apply at read time. */
 export interface CacheEntry<TScores = Record<string, unknown>> {
@@ -23,6 +24,22 @@ export interface CacheEntry<TScores = Record<string, unknown>> {
   readonly confidence: number;
   readonly rubric_version: string;
   readonly judged_at: number;
+}
+
+// ---------------------------------------------------------------------------
+// Cache score shapes — the contract between what pipeline.ts writes into the
+// two cache tiers and what gate.ts (preFetchGate) reads back out of them.
+// Owned here (the cache's own tiering), re-exported from gate.ts for
+// backward compatibility with existing imports.
+// ---------------------------------------------------------------------------
+
+export interface CachedRelevanceScores {
+  readonly relevance: ScoreJudgment;
+  readonly worth_fetching: NoulJudgment;
+}
+
+export interface CachedCredibilityScores {
+  readonly credibility: ScoreJudgment;
 }
 
 export interface CacheOptions {
@@ -35,10 +52,10 @@ export interface CacheOptions {
 }
 
 export interface ScoreCache {
-  getRelevance(query: string, goal: string | undefined, url: string): CacheEntry | undefined;
-  putRelevance(query: string, goal: string | undefined, url: string, entry: CacheEntry): void;
-  getCredibility(domain: string, rubricVersion: string): CacheEntry | undefined;
-  putCredibility(domain: string, rubricVersion: string, entry: CacheEntry): void;
+  getRelevance(query: string, goal: string | undefined, url: string): CacheEntry<CachedRelevanceScores> | undefined;
+  putRelevance(query: string, goal: string | undefined, url: string, entry: CacheEntry<CachedRelevanceScores>): void;
+  getCredibility(domain: string, rubricVersion: string): CacheEntry<CachedCredibilityScores> | undefined;
+  putCredibility(domain: string, rubricVersion: string, entry: CacheEntry<CachedCredibilityScores>): void;
 }
 
 const DEFAULT_RELEVANCE_TTL_MS = 15 * 60 * 1000;
@@ -52,8 +69,8 @@ function credibilityKey(domain: string, rubricVersion: string): string {
   return `${domain}:${rubricVersion}`;
 }
 
-interface StoredEntry {
-  readonly entry: CacheEntry;
+interface StoredEntry<TScores> {
+  readonly entry: CacheEntry<TScores>;
   readonly expiresAt: number;
 }
 
@@ -62,10 +79,10 @@ export function createCache(options: CacheOptions = {}): ScoreCache {
   const credibilityTtlMs = options.credibilityTtlMs ?? DEFAULT_CREDIBILITY_TTL_MS;
   const now = options.now ?? Date.now;
 
-  const relevanceStore = new Map<string, StoredEntry>();
-  const credibilityStore = new Map<string, StoredEntry>();
+  const relevanceStore = new Map<string, StoredEntry<CachedRelevanceScores>>();
+  const credibilityStore = new Map<string, StoredEntry<CachedCredibilityScores>>();
 
-  function read(store: Map<string, StoredEntry>, key: string): CacheEntry | undefined {
+  function read<TScores>(store: Map<string, StoredEntry<TScores>>, key: string): CacheEntry<TScores> | undefined {
     const stored = store.get(key);
     if (stored === undefined) return undefined;
     if (stored.expiresAt <= now()) {
@@ -76,10 +93,10 @@ export function createCache(options: CacheOptions = {}): ScoreCache {
     return stored.entry;
   }
 
-  function write(
-    store: Map<string, StoredEntry>,
+  function write<TScores>(
+    store: Map<string, StoredEntry<TScores>>,
     key: string,
-    entry: CacheEntry,
+    entry: CacheEntry<TScores>,
     ttlMs: number,
   ): void {
     // Always overwrites — a fresh judgment supersedes any cached one.

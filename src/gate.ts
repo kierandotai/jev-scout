@@ -12,8 +12,14 @@
  */
 
 import type { GateMode } from "./config.ts";
-import { RUBRIC_VERSION, type NoulJudgment, type ResultJudgment, type ScoreJudgment } from "./judge.ts";
-import type { ScoreCache } from "./cache.ts";
+import { RUBRIC_VERSION, type ResultJudgment } from "./judge.ts";
+import type { CachedCredibilityScores, CachedRelevanceScores, ScoreCache } from "./cache.ts";
+
+/**
+ * Owned by cache.ts (the cache's own tiering); re-exported here so existing
+ * imports of these types from gate.ts keep compiling unchanged.
+ */
+export type { CachedCredibilityScores, CachedRelevanceScores };
 
 /** The slice of Config that gate.ts needs — any object with these fields works. */
 export interface GateConfig {
@@ -60,21 +66,6 @@ export function gateResult(judgment: ResultJudgment | null, config: GateConfig):
   return { action: reasons.length > 0 ? "drop" : "pass", reasons, scored: true };
 }
 
-// ---------------------------------------------------------------------------
-// Cache score shapes — the contract between what pipeline.ts writes into the
-// two cache tiers and what gate.ts (preFetchGate) reads back out of them.
-// Exported so pipeline.ts uses the exact same shapes when populating the cache.
-// ---------------------------------------------------------------------------
-
-export interface CachedRelevanceScores {
-  readonly relevance: ScoreJudgment;
-  readonly worth_fetching: NoulJudgment;
-}
-
-export interface CachedCredibilityScores {
-  readonly credibility: ScoreJudgment;
-}
-
 export interface PreFetchGateResult {
   readonly allow: boolean;
   readonly reason?: string;
@@ -95,7 +86,7 @@ export function preFetchGate(
   const cached = cache.getCredibility(domain, RUBRIC_VERSION);
   if (cached === undefined) return { allow: true };
 
-  const credibility = (cached.scores as unknown as CachedCredibilityScores).credibility;
+  const credibility = cached.scores.credibility;
   if (credibility === undefined) return { allow: true };
 
   if (credibility.score < config.minCredibility) {

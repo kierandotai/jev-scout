@@ -56,6 +56,8 @@ export interface PipelineDeps {
   readonly config: Config;
   /** Session id stamped on every ledger event. Defaults to a fresh UUID. */
   readonly session?: string;
+  /** Abort a Jev judgeResult/judgePage call after this many ms. Default 30_000. */
+  readonly judgeTimeoutMs?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,14 +77,25 @@ export interface AnnotatedResult {
   readonly domain: string;
   readonly scored: boolean;
   readonly budget_exhausted?: boolean;
+  /** Set instead of being judged at all — the per-search judged-result cap was hit. */
+  readonly judge_skipped?: "judge_cap";
   readonly relevance?: ScoreJudgment;
   readonly credibility?: ScoreJudgment;
   readonly worth_fetching?: NoulJudgment;
 }
 
+/** A search result that never made it into `results` — dropped by the gate. */
+export interface DroppedResult {
+  readonly url: string;
+  readonly domain: string;
+  readonly reasons: string[];
+}
+
 export interface RunSearchResult {
   readonly search_id: string;
   readonly results: AnnotatedResult[];
+  /** Every gate-dropped result (threshold drops and beyond-cap truncation), gate mode only. */
+  readonly dropped: DroppedResult[];
   readonly backends_tried: string[];
   readonly budget?: BudgetState;
 }
@@ -131,9 +144,29 @@ export interface Pipeline {
   runFetch(input: RunFetchInput): Promise<RunFetchResult>;
 }
 
+const DEFAULT_JUDGE_TIMEOUT_MS = 30_000;
+
 export function createPipeline(deps: PipelineDeps): Pipeline {
   const { backends, judge, budget, cache, ledger, config } = deps;
   const session = deps.session ?? randomUUID();
+  const judgeTimeoutMs = deps.judgeTimeoutMs ?? DEFAULT_JUDGE_TIMEOUT_MS;
+
+  // Once-flag: emit the "budget" ledger event on the FIRST budget-reserve
+  // failure this pipeline instance sees, across both runSearch and runFetch.
+  let budgetEventEmitted = false;
+
+  function emitBudgetExhaustedOnce(search_id: string): void {
+    if (budgetEventEmitted) return;
+    budgetEventEmitted = true;
+    const state = budget.state();
+    const limit = state.exhausted === false ? "calls" : state.exhausted.limit;
+    ledger.append({
+      session,
+      search_id,
+      type: "budget",
+      payload: { limit, callsUsed: state.callsUsed, spendUsd: state.spendUsd },
+    });
+  }
 
   // -------------------------------------------------------------------------
   // Per-result judging: cache-first, else budget-gated single Jev call.
@@ -170,11 +203,14 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
 
     const start = performance.now();
     try {
-      const judgment = await judge.judgeResult({
-        goal: input.goal,
-        query: input.query,
-        result: { title: result.title, snippet: result.snippet, domain: result.domain },
-      });
+      const judgment = await judge.judgeResult(
+        {
+          goal: input.goal,
+          query: input.query,
+          result: { title: result.title, snippet: result.snippet, domain: result.domain },
+        },
+        { signal: AbortSignal.timeout(judgeTimeoutMs) },
+      );
       const latencyMs = performance.now() - start;
       budget.record(judgment.cost_usd);
 
@@ -213,12 +249,15 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
     const chain = await resolveSearch(config, backends, input.query, input.maxResults);
     const k = Math.min(config.maxJudged, chain.results.length);
     const topK = chain.results.slice(0, k);
+    const beyondCap = chain.results.slice(k);
 
     const results: AnnotatedResult[] = [];
+    const dropped: DroppedResult[] = [];
 
     for (let rank = 0; rank < topK.length; rank++) {
       const result = topK[rank]!;
       const outcome = await judgeOneResult(result, input);
+      if (outcome.budgetExhausted) emitBudgetExhaustedOnce(search_id);
       const gate = gateResult(outcome.judgment, config);
 
       ledger.append({
@@ -237,7 +276,9 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
           ...(outcome.judgment
             ? {
                 relevance: outcome.judgment.relevance.score,
+                relevance_confidence: outcome.judgment.relevance.confidence,
                 credibility: outcome.judgment.credibility.score,
+                credibility_confidence: outcome.judgment.credibility.confidence,
                 worth_fetching: outcome.judgment.worth_fetching.probability,
               }
             : {}),
@@ -255,6 +296,7 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
           type: "gate",
           payload: { url: result.url, domain: result.domain, reasons: gate.reasons },
         });
+        dropped.push({ url: result.url, domain: result.domain, reasons: gate.reasons });
         continue;
       }
 
@@ -275,11 +317,41 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
       });
     }
 
+    // Beyond top-k: never silently vanish. Annotate mode returns them
+    // unscored with judge_skipped; gate mode must never let an unjudged
+    // result bypass the gate, so they are truncated — tracked in `dropped`
+    // and recorded as one ledger event (not one per result, to avoid spam).
+    if (beyondCap.length > 0) {
+      if (config.mode === "annotate") {
+        for (const result of beyondCap) {
+          results.push({
+            title: result.title,
+            url: result.url,
+            snippet: result.snippet,
+            domain: result.domain,
+            scored: false,
+            judge_skipped: "judge_cap",
+          });
+        }
+      } else {
+        for (const result of beyondCap) {
+          dropped.push({ url: result.url, domain: result.domain, reasons: ["judge_cap_unjudged"] });
+        }
+        ledger.append({
+          session,
+          search_id,
+          type: "gate",
+          payload: { dropped_beyond_cap: beyondCap.length },
+        });
+      }
+    }
+
     const budgetField = budgetFieldIfOver80(budget);
 
     return {
       search_id,
       results,
+      dropped,
       backends_tried: chain.backendsTried,
       ...(budgetField ? { budget: budgetField } : {}),
     };
@@ -296,7 +368,7 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
           session,
           search_id,
           type: "gate",
-          payload: { url: input.url, domain, reason: check.reason },
+          payload: { url: input.url, domain, goal: input.goal, reason: check.reason },
         });
         return { search_id, ok: false, reason: "gate_refused", detail: check.reason! };
       }
@@ -304,6 +376,12 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
 
     const fetched = await fetchPage(input.url);
     if (!fetched.ok) {
+      ledger.append({
+        session,
+        search_id,
+        type: "fetch",
+        payload: { url: input.url, goal: input.goal, ok: false, reason: fetched.reason, detail: fetched.detail },
+      });
       return { search_id, ok: false, reason: fetched.reason, detail: fetched.detail };
     }
 
@@ -314,11 +392,14 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
     if (budget.reserve()) {
       const start = performance.now();
       try {
-        judgment = await judge.judgePage({
-          goal: input.goal,
-          url: fetched.finalUrl,
-          excerpt: fetched.text,
-        });
+        judgment = await judge.judgePage(
+          {
+            goal: input.goal,
+            url: fetched.finalUrl,
+            excerpt: fetched.text,
+          },
+          { signal: AbortSignal.timeout(judgeTimeoutMs) },
+        );
         latencyMs = performance.now() - start;
         budget.record(judgment.cost_usd);
       } catch {
@@ -327,6 +408,7 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
       }
     } else {
       budgetExhausted = true;
+      emitBudgetExhaustedOnce(search_id);
     }
 
     ledger.append({
@@ -336,9 +418,11 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
       payload: {
         url: input.url,
         finalUrl: fetched.finalUrl,
+        goal: input.goal,
         contentHash: fetched.contentHash,
         truncated: fetched.truncated,
         scored: judgment !== null,
+        budget_exhausted: budgetExhausted,
         ...(judgment
           ? {
               answered: judgment.answered.probability,

@@ -172,3 +172,50 @@ test("multiple appends each emit their own event, in order", () => {
 
   assert.deepEqual(seenTypes, ["search", "result", "gate"]);
 });
+
+// ---------------------------------------------------------------------------
+// Fix 6: append() must never throw, even when the ledger dir is unwritable —
+// discarding an already-paid-for Jev judgment mid-loop is worse than a
+// warning. On a write failure it still returns the event object, marked
+// persisted:false, and warns on stderr exactly once (rate-limited).
+// ---------------------------------------------------------------------------
+
+test("append never throws when the ledger dir is read-only, and marks the returned event persisted:false", (t) => {
+  if (process.getuid !== undefined && process.getuid() === 0) {
+    t.skip("running as root bypasses directory permission checks");
+    return;
+  }
+
+  const dir = tmpDir("ledger-readonly");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.chmodSync(dir, 0o500); // r-x------: cannot create new files in it
+
+  const originalWrite = process.stderr.write.bind(process.stderr);
+  const warnings: string[] = [];
+  (process.stderr as unknown as { write: (chunk: unknown) => boolean }).write = (chunk: unknown) => {
+    warnings.push(String(chunk));
+    return true;
+  };
+
+  try {
+    const ledger = createLedger(dir);
+
+    let first: LedgerEvent | undefined;
+    assert.doesNotThrow(() => {
+      first = ledger.append({ session: "s", search_id: "1", type: "search", payload: { query: "q" } });
+    });
+    assert.equal(first?.persisted, false);
+    assert.equal(first?.search_id, "1", "the event object is still returned in full, not discarded");
+
+    let second: LedgerEvent | undefined;
+    assert.doesNotThrow(() => {
+      second = ledger.append({ session: "s", search_id: "2", type: "result", payload: { url: "https://x" } });
+    });
+    assert.equal(second?.persisted, false);
+
+    assert.equal(warnings.length, 1, "the stderr warning is rate-limited to the first failure only");
+  } finally {
+    process.stderr.write = originalWrite;
+    fs.chmodSync(dir, 0o700); // restore so the OS can clean up the tmp dir
+  }
+});

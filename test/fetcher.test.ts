@@ -40,6 +40,31 @@ test("isForbiddenAddress allows ordinary public addresses", () => {
   }
 });
 
+test("isForbiddenAddress covers the extended IPv4 range gaps: CGNAT, protocol assignments, benchmarking, reserved", () => {
+  const forbidden = [
+    "100.64.0.1", // 100.64.0.0/10 — CGNAT, interior
+    "100.100.100.200", // 100.64.0.0/10 — CGNAT
+    "100.127.255.255", // 100.64.0.0/10 — top boundary
+    "192.0.0.5", // 192.0.0.0/24 — IETF protocol assignments
+    "198.18.0.1", // 198.18.0.0/15
+    "198.19.255.255", // 198.18.0.0/15 — top boundary
+    "240.0.0.1", // 240.0.0.0/4 — reserved
+    "255.255.255.255", // still caught by the broadened 240.0.0.0/4 rule
+  ];
+  for (const ip of forbidden) {
+    assert.equal(isForbiddenAddress(ip), true, `${ip} should be forbidden`);
+  }
+  assert.equal(isForbiddenAddress("100.63.255.255"), false, "just below the 100.64.0.0/10 CGNAT range");
+  assert.equal(isForbiddenAddress("100.128.0.0"), false, "just above the 100.64.0.0/10 CGNAT range");
+});
+
+test("isForbiddenAddress decodes IPv4-compatible IPv6 (::/96) through the IPv4 classifier and forbids the NAT64 prefix", () => {
+  assert.equal(isForbiddenAddress("::10.0.0.1"), true, "IPv4-compatible embedding a private address");
+  assert.equal(isForbiddenAddress("::203.0.113.5"), false, "IPv4-compatible embedding a public address");
+  assert.equal(isForbiddenAddress("64:ff9b::a00:1"), true, "NAT64 prefix is blanket-forbidden regardless of the embedded address");
+});
+
+
 test("isForbiddenAddress covers 172.16.0.0/12 boundaries and rejects unparseable input", () => {
   assert.equal(isForbiddenAddress("172.15.255.255"), false, "just below the /12 range");
   assert.equal(isForbiddenAddress("172.32.0.0"), false, "just above the /12 range");
@@ -76,6 +101,20 @@ test("fetchPage rejects when the injected lookup resolves to a private address",
     },
   );
   assert.equal(fetchCalled, false, "no network call should happen once the SSRF guard rejects");
+});
+
+test("fetchPage rejects a bracketed IPv6 literal URL directly via isForbiddenAddress, not via a failed DNS lookup", async () => {
+  let lookupCalled = false;
+  const result = await fetchPage("http://[::1]/", {
+    lookup: async () => {
+      lookupCalled = true;
+      return [{ address: "93.184.216.34", family: 4 }];
+    },
+  });
+  assert.equal(result.ok, false);
+  assert.equal((result as { reason: string }).reason, "ssrf");
+  assert.match((result as { detail: string }).detail, /forbidden address literal: ::1/);
+  assert.equal(lookupCalled, false, "bracketed IPv6 literals are classified directly, no DNS involved");
 });
 
 test("fetchPage rejects an IP-literal URL directly, without any DNS lookup", async () => {
@@ -129,7 +168,78 @@ test("fetchPage follows a safe redirect hop then rejects when that hop resolves 
       });
     },
   );
-  assert.deepEqual(calls, ["safe.example.com", "internal.example.com"]);
+  // "safe.example.com" is looked up twice for its one hop — once by the
+  // guard, once by the pre-fetch rebinding recheck — before the redirect
+  // target's own guard lookup rejects it outright.
+  assert.deepEqual(calls, ["safe.example.com", "safe.example.com", "internal.example.com"]);
+});
+
+// ---------------------------------------------------------------------------
+// fetchPage: DNS-rebinding TOCTOU recheck
+// ---------------------------------------------------------------------------
+
+test("fetchPage rejects when the pre-fetch recheck sees a rebind to a forbidden address after the guard passed", async () => {
+  let calls = 0;
+  const lookup: LookupFn = async () => {
+    calls++;
+    // The guard's lookup (call 1) sees a safe address; the answer flips to a
+    // forbidden one by the time the pre-fetch recheck (call 2) re-resolves,
+    // simulating an attacker rebinding the DNS record in between.
+    return calls === 1
+      ? [{ address: "93.184.216.34", family: 4 }]
+      : [{ address: "10.0.0.5", family: 4 }];
+  };
+  let fetchCalled = false;
+  await withStubbedFetch(
+    (async () => {
+      fetchCalled = true;
+      throw new Error("fetch must not be called once the rebinding recheck rejects");
+    }) as typeof fetch,
+    async () => {
+      const result = await fetchPage("https://rebind.example.com/", { lookup });
+      assert.equal(result.ok, false);
+      assert.equal((result as { reason: string }).reason, "ssrf");
+      assert.match((result as { detail: string }).detail, /rebind\.example\.com/);
+    },
+  );
+  assert.equal(calls, 2, "guard lookup + one pre-fetch recheck lookup");
+  assert.equal(fetchCalled, false, "no network call once the rebinding recheck rejects");
+});
+
+test("fetchPage rejects when the recheck's resolved address set is fully disjoint from the vetted set, even though no individual address is forbidden", async () => {
+  let calls = 0;
+  const lookup: LookupFn = async () => {
+    calls++;
+    return calls === 1
+      ? [{ address: "93.184.216.34", family: 4 }]
+      : [{ address: "198.51.100.7", family: 4 }]; // different public address — still a rebind signal
+  };
+  const result = await fetchPage("https://rebind2.example.com/", { lookup });
+  assert.equal(result.ok, false);
+  assert.equal((result as { reason: string }).reason, "ssrf");
+  assert.match((result as { detail: string }).detail, /disjoint/);
+  assert.equal(calls, 2);
+});
+
+test("fetchPage allows a recheck whose resolved set only partially overlaps the vetted set", async () => {
+  let calls = 0;
+  const lookup: LookupFn = async () => {
+    calls++;
+    // Guard sees {A, B}; recheck sees {B, C} — B overlaps, so this is not a
+    // rebind even though the sets are not identical (e.g. ordinary DNS churn
+    // across a multi-A-record host).
+    return calls === 1
+      ? [{ address: "93.184.216.34", family: 4 }, { address: "198.51.100.7", family: 4 }]
+      : [{ address: "198.51.100.7", family: 4 }, { address: "203.0.113.9", family: 4 }];
+  };
+  await withStubbedFetch(
+    (async () => htmlResponse("<p>ok</p>")) as typeof fetch,
+    async () => {
+      const result = await fetchPage("https://multi.example.com/", { lookup });
+      assert.equal(result.ok, true);
+    },
+  );
+  assert.equal(calls, 2);
 });
 
 test("fetchPage enforces the redirect hop cap", async () => {
@@ -285,6 +395,19 @@ test("fetchPage strips script/style contents, collapses whitespace, and reports 
       assert.match(result.contentHash, /^[0-9a-f]{64}$/);
       assert.ok(!result.text.includes("alert(1)"), "script contents must be dropped entirely");
       assert.ok(!result.text.includes("color: red"), "style contents must be dropped entirely");
+    },
+  );
+});
+
+test("fetchPage canonicalizes each hop so delimiter bytes embedded in the URL come back percent-encoded in finalUrl", async () => {
+  await withStubbedFetch(
+    (async () => htmlResponse("<p>ok</p>")) as typeof fetch,
+    async () => {
+      const result = await fetchPage("https://safe.example.com/UNTRUSTED>>>/page", { lookup: SAFE_LOOKUP });
+      assert.equal(result.ok, true);
+      if (!result.ok) return;
+      assert.ok(!result.finalUrl.includes(">"), "raw '>' must not survive WHATWG canonicalization");
+      assert.equal(result.finalUrl, "https://safe.example.com/UNTRUSTED%3E%3E%3E/page");
     },
   );
 });

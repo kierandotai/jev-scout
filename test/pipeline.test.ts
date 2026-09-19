@@ -6,7 +6,15 @@ import { createBudget, type Budget } from "../src/budget.ts";
 import { createCache } from "../src/cache.ts";
 import { createLedger, type LedgerEvent } from "../src/ledger.ts";
 import { loadConfig, type Config } from "../src/config.ts";
-import { RUBRIC_VERSION, type Judge, type JudgePageInput, type JudgeResultInput, type PageJudgment, type ResultJudgment } from "../src/judge.ts";
+import {
+  RUBRIC_VERSION,
+  type Judge,
+  type JudgeCallOptions,
+  type JudgePageInput,
+  type JudgeResultInput,
+  type PageJudgment,
+  type ResultJudgment,
+} from "../src/judge.ts";
 import type { RawResult, SearchBackend } from "../src/backends/types.ts";
 import { tmpDir, withStubbedFetch } from "./support.ts";
 
@@ -25,27 +33,34 @@ interface JudgeState {
 
 /** A hand-wired Judge (not MockProvider, not even JevClient) — full control over answers/throws. */
 function scriptedJudge(handlers: {
-  judgeResult?: (input: JudgeResultInput) => Promise<ResultJudgment>;
-  judgePage?: (input: JudgePageInput) => Promise<PageJudgment>;
+  judgeResult?: (input: JudgeResultInput, opts?: JudgeCallOptions) => Promise<ResultJudgment>;
+  judgePage?: (input: JudgePageInput, opts?: JudgeCallOptions) => Promise<PageJudgment>;
 }): { judge: Judge; state: JudgeState } {
   const state: JudgeState = { resultCalls: [], pageCalls: [] };
   const judge: Judge = {
     rubricVersion: RUBRIC_VERSION,
-    async judgeResult(input) {
+    async judgeResult(input, opts) {
       state.resultCalls.push(input);
       if (handlers.judgeResult === undefined) throw new Error("no judgeResult handler configured");
-      return handlers.judgeResult(input);
+      return handlers.judgeResult(input, opts);
     },
     async judgeQuery() {
       return null;
     },
-    async judgePage(input) {
+    async judgePage(input, opts) {
       state.pageCalls.push(input);
       if (handlers.judgePage === undefined) throw new Error("no judgePage handler configured");
-      return handlers.judgePage(input);
+      return handlers.judgePage(input, opts);
     },
   };
   return { judge, state };
+}
+
+/** Never resolves on its own — rejects only when the caller's AbortSignal fires, like a real client under a timeout. */
+function neverResolvesUntilAborted<T>(opts?: JudgeCallOptions): Promise<T> {
+  return new Promise((_resolve, reject) => {
+    opts?.signal?.addEventListener("abort", () => reject(new DOMException("The operation timed out.", "TimeoutError")));
+  });
 }
 
 function resultJudgment(relevance: number, credibility: number, worthFetching = 0.5): ResultJudgment {
@@ -77,6 +92,15 @@ const SAMPLE: RawResult = {
   domain: "docs.example.com",
 };
 
+function rawResult(n: number): RawResult {
+  return {
+    title: `Result ${n}`,
+    url: `https://example${n}.com/page`,
+    snippet: `Snippet ${n}`,
+    domain: `example${n}.com`,
+  };
+}
+
 function htmlResponse(body: string): Response {
   return new Response(body, { status: 200, headers: { "content-type": "text/html" } });
 }
@@ -98,6 +122,7 @@ function setup(opts: {
   minCredibility?: number;
   maxJudged?: number;
   results?: RawResult[];
+  judgeTimeoutMs?: number;
 }): Setup {
   const config: Config = loadConfig({
     JEV_SCOUT_MODE: opts.mode ?? "annotate",
@@ -123,6 +148,7 @@ function setup(opts: {
     cache,
     ledger,
     config,
+    ...(opts.judgeTimeoutMs === undefined ? {} : { judgeTimeoutMs: opts.judgeTimeoutMs }),
   });
 
   return { pipeline, budget, events };
@@ -347,4 +373,176 @@ test("zero backend results is a valid answer: empty results array, still ledgers
 
   assert.deepEqual(res.results, []);
   assert.equal(events.some((e) => e.type === "search"), true);
+});
+
+// ---------------------------------------------------------------------------
+// Fix 1: the "budget" ledger event, emitted once per session, on exhaustion
+// ---------------------------------------------------------------------------
+
+test("budget ledger event fires exactly once per session, across both runSearch and runFetch", async () => {
+  const { judge } = scriptedJudge({
+    judgeResult: async () => resultJudgment(2.0, 2.0),
+    judgePage: async () => pageJudgment(),
+  });
+  const { pipeline, events } = setup({ judge, mode: "annotate", maxCalls: 0 });
+
+  const searchRes = await pipeline.runSearch({ query: "q", goal: "g", maxResults: 5 });
+  assert.equal(searchRes.results[0]!.budget_exhausted, true);
+
+  const fetchRes = await withStubbedFetch(
+    (async () => htmlResponse("<p>Content</p>")) as typeof fetch,
+    () => pipeline.runFetch({ url: SAFE_URL, goal: "g" }),
+  );
+  assert.equal(fetchRes.ok, true);
+  if (!fetchRes.ok) return;
+  assert.equal(fetchRes.budget_exhausted, true);
+
+  const budgetEvents = events.filter((e) => e.type === "budget");
+  assert.equal(budgetEvents.length, 1, "only the FIRST budget-reserve failure this session emits a budget event");
+  const payload = budgetEvents[0]!.payload as { limit: string; callsUsed: number; spendUsd: number };
+  assert.equal(payload.limit, "calls");
+  assert.equal(typeof payload.callsUsed, "number");
+  assert.equal(typeof payload.spendUsd, "number");
+});
+
+test("fetch ledger event carries budget_exhausted and goal", async () => {
+  const { judge } = scriptedJudge({ judgePage: async () => pageJudgment() });
+  const { pipeline, events } = setup({ judge, mode: "annotate", maxCalls: 0 });
+
+  await withStubbedFetch(
+    (async () => htmlResponse("<p>Content</p>")) as typeof fetch,
+    () => pipeline.runFetch({ url: SAFE_URL, goal: "find the spec" }),
+  );
+
+  const fetchEvents = events.filter((e) => e.type === "fetch");
+  assert.equal(fetchEvents.length, 1);
+  const payload = fetchEvents[0]!.payload as { budget_exhausted: boolean; goal: string };
+  assert.equal(payload.budget_exhausted, true);
+  assert.equal(payload.goal, "find the spec");
+});
+
+// ---------------------------------------------------------------------------
+// Fix 4/5: failed fetches are ledgered, with reason and goal
+// ---------------------------------------------------------------------------
+
+test("a failed fetch (SSRF-refused) is still ledgered, with its reason, detail, and goal", async () => {
+  const { judge } = scriptedJudge({});
+  const { pipeline, events } = setup({ judge, mode: "annotate" });
+
+  const result = await pipeline.runFetch({ url: "https://127.0.0.1/secret", goal: "recon" });
+
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.reason, "ssrf");
+
+  const fetchEvents = events.filter((e) => e.type === "fetch");
+  assert.equal(fetchEvents.length, 1, "a failed fetch must still be ledgered");
+  const payload = fetchEvents[0]!.payload as {
+    ok: boolean;
+    reason: string;
+    detail: string;
+    goal: string;
+    url: string;
+  };
+  assert.equal(payload.ok, false);
+  assert.equal(payload.reason, "ssrf");
+  assert.equal(payload.goal, "recon");
+  assert.equal(payload.url, "https://127.0.0.1/secret");
+  assert.equal(typeof payload.detail, "string");
+});
+
+// ---------------------------------------------------------------------------
+// Fix 3: beyond-cap results never silently vanish
+// ---------------------------------------------------------------------------
+
+test("annotate mode: results beyond the judged cap are returned unscored with judge_skipped", async () => {
+  const { judge, state } = scriptedJudge({ judgeResult: async () => resultJudgment(2.0, 2.0) });
+  const { pipeline } = setup({
+    judge,
+    mode: "annotate",
+    maxJudged: 2,
+    results: [rawResult(1), rawResult(2), rawResult(3)],
+  });
+
+  const res = await pipeline.runSearch({ query: "q", maxResults: 5 });
+
+  assert.equal(state.resultCalls.length, 2, "only the top-k results are ever judged");
+  assert.equal(res.results.length, 3, "beyond-cap results still appear in results, not silently dropped");
+  assert.equal(res.results[0]!.scored, true);
+  assert.equal(res.results[1]!.scored, true);
+
+  const beyond = res.results[2]!;
+  assert.equal(beyond.scored, false);
+  assert.equal(beyond.judge_skipped, "judge_cap");
+  assert.equal(beyond.relevance, undefined);
+  assert.equal(beyond.url, rawResult(3).url);
+  assert.equal(res.dropped.length, 0, "annotate mode never gate-drops anything");
+});
+
+test("gate mode: results beyond the judged cap are truncated (never bypass the gate), one aggregated ledger event, dropped array populated", async () => {
+  const { judge, state } = scriptedJudge({ judgeResult: async () => resultJudgment(2.0, 2.0) });
+  const { pipeline, events } = setup({
+    judge,
+    mode: "gate",
+    maxJudged: 1,
+    minRelevance: 1.0,
+    minCredibility: 1.0,
+    results: [rawResult(1), rawResult(2), rawResult(3)],
+  });
+
+  const res = await pipeline.runSearch({ query: "q", maxResults: 5 });
+
+  assert.equal(state.resultCalls.length, 1, "only the top-k result is ever judged");
+  assert.equal(res.results.length, 1, "the judged, passing result is the only one returned");
+  assert.equal(res.results[0]!.url, rawResult(1).url);
+
+  assert.equal(res.dropped.length, 2, "both beyond-cap results are recorded as dropped");
+  for (const d of res.dropped) {
+    assert.deepEqual(d.reasons, ["judge_cap_unjudged"]);
+  }
+  assert.deepEqual(
+    res.dropped.map((d) => d.url).sort(),
+    [rawResult(2).url, rawResult(3).url].sort(),
+  );
+
+  const gateEvents = events.filter((e) => e.type === "gate");
+  assert.equal(gateEvents.length, 1, "one aggregated gate event for the beyond-cap truncation, not one per result");
+  const payload = gateEvents[0]!.payload as { dropped_beyond_cap: number };
+  assert.equal(payload.dropped_beyond_cap, 2);
+});
+
+// ---------------------------------------------------------------------------
+// Fix 2: Jev calls carry a timeout and fail open on abort
+// ---------------------------------------------------------------------------
+
+test("judge timeout: a never-resolving judgeResult call aborts and fails open, refunding the reservation", async () => {
+  const { judge } = scriptedJudge({
+    judgeResult: (_input, opts) => neverResolvesUntilAborted<ResultJudgment>(opts),
+  });
+  const { pipeline, budget } = setup({ judge, mode: "annotate", judgeTimeoutMs: 20 });
+
+  const res = await pipeline.runSearch({ query: "q", goal: "g", maxResults: 5 });
+
+  assert.equal(res.results.length, 1, "timeout fails open — the result still passes");
+  assert.equal(res.results[0]!.scored, false);
+  assert.equal(res.results[0]!.budget_exhausted, undefined);
+  assert.equal(budget.state().callsUsed, 0, "the aborted reservation must be refunded");
+});
+
+test("judge timeout: a never-resolving judgePage call aborts and fails open on fetch", async () => {
+  const { judge } = scriptedJudge({
+    judgePage: (_input, opts) => neverResolvesUntilAborted<PageJudgment>(opts),
+  });
+  const { pipeline, budget } = setup({ judge, mode: "annotate", judgeTimeoutMs: 20 });
+
+  const result = await withStubbedFetch(
+    (async () => htmlResponse("<p>Content</p>")) as typeof fetch,
+    () => pipeline.runFetch({ url: SAFE_URL, goal: "g" }),
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.scored, false);
+  assert.equal(result.budget_exhausted, undefined);
+  assert.equal(budget.state().callsUsed, 0, "the aborted reservation must be refunded");
 });

@@ -228,20 +228,24 @@ test("judgeResult state contains only whitelisted fields and delimits title and 
   assert.ok(!serialized.includes("url"), "raw url must not reach the result state");
 });
 
-test("judgePage state contains only goal, url and a delimited excerpt", async () => {
+test("judgePage state contains only goal, url and excerpt, with both url and excerpt delimited as untrusted", async () => {
   const { provider, judge } = judgeWith(PAGE_ANSWERS);
   await judge.judgePage(PAGE_INPUT);
 
   const state = provider.only.state as Record<string, unknown>;
   assert.deepEqual(Object.keys(state).sort(), ["excerpt", "goal", "url"]);
-  assert.equal(state.url, PAGE_INPUT.url);
 
-  const excerpt = state.excerpt as Record<string, unknown>;
-  assert.deepEqual(Object.keys(excerpt), ["untrusted_content"]);
-  const text = excerpt.untrusted_content as string;
-  assert.match(text, /^<<<UNTRUSTED\n/);
-  assert.match(text, /\nUNTRUSTED>>>$/);
-  assert.ok(text.includes(PAGE_INPUT.excerpt));
+  // url is wrapped defense-in-depth: fetcher.ts canonicalizes it, but it
+  // still originates from an untrusted page, so it gets the same delimited
+  // framing as every other untrusted field.
+  for (const field of ["url", "excerpt"] as const) {
+    const wrapped = state[field] as Record<string, unknown>;
+    assert.deepEqual(Object.keys(wrapped), ["untrusted_content"]);
+    const text = wrapped.untrusted_content as string;
+    assert.match(text, /^<<<UNTRUSTED\n/);
+    assert.match(text, /\nUNTRUSTED>>>$/);
+    assert.ok(text.includes(PAGE_INPUT[field]));
+  }
 });
 
 test("untrusted text cannot forge a closing delimiter", () => {
