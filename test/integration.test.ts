@@ -187,7 +187,11 @@ test("real chain: createPipeline + real createJudge(JevClient mock) + buildServe
 
     assert.ok(report.session_spend_usd > 0, "real judge calls (via mock provider) must record real spend");
     assert.ok(report.today_spend_usd > 0);
-    assert.equal(report.budget.callsUsed, 3, "2 result judgments + 1 page judgment");
+    assert.equal(
+      report.budget.callsUsed,
+      4,
+      "1 on_task query judgment + 2 result judgments + 1 page judgment",
+    );
   } finally {
     await mcpClient.close();
     await server.close();
