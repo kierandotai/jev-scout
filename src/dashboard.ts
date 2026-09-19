@@ -90,14 +90,50 @@ interface SummaryDomainRow {
   readonly lowCredibilityHits: number;
 }
 
+/**
+ * "used" vs "gated" panel aggregate (deferred 4th dashboard panel).
+ *
+ * - `used`: "result" events with payload.action === "pass" — results that
+ *   were actually passed to the agent.
+ * - `gated`: every way a candidate result never reached the agent —
+ *   threshold drops (one "gate" event per dropped result, payload.reasons),
+ *   beyond-judge-cap truncations (one aggregated "gate" event per search,
+ *   payload.dropped_beyond_cap), and pre-fetch refusals (one "gate" event
+ *   per refused guarded_fetch call, payload.reason). These three shapes are
+ *   mutually exclusive and are the only "gate" event payload shapes emitted
+ *   by pipeline.ts.
+ * - `byReason`: a stable-slug breakdown (see classifyGateReason) so the
+ *   count survives the fact that threshold-drop reason strings embed a
+ *   computed score and are never identical across two drops.
+ */
+interface GatingSummary {
+  readonly used: number;
+  readonly gated: number;
+  readonly byReason: Record<string, number>;
+}
+
 interface Summary {
   readonly sessionStartTs: string;
   readonly eventCounts: Record<string, number>;
   readonly totalCostUsd: number;
   readonly jevCallCount: number;
   readonly domains: SummaryDomainRow[];
+  readonly gating: GatingSummary;
   /** SSE sequence id these aggregates already include — see module doc. */
   readonly lastEventId: number;
+}
+
+/**
+ * Reduce a gate-drop reason sentence (e.g. "credibility 0.20 is below the
+ * gate threshold 1") to a stable slug for aggregation. Reason strings from
+ * gate.ts always embed the computed score, so two drops for the same
+ * underlying cause never produce identical strings — this is what makes
+ * `byReason` counts meaningful instead of one row per drop.
+ */
+function classifyGateReason(reason: string): string {
+  if (/credibility/i.test(reason)) return "low_credibility";
+  if (/relevance/i.test(reason)) return "low_relevance";
+  return "other";
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +158,11 @@ export async function startDashboard(
   let jevCallCount = 0;
   const domains = new Map<string, DomainStats>();
 
+  // --- "used" vs "gated" panel state (see GatingSummary doc comment). ---
+  let usedCount = 0;
+  let gatedCount = 0;
+  const gatedByReason: Record<string, number> = {};
+
   const sseClients = new Set<http.ServerResponse>();
 
   function buildSummary(): Summary {
@@ -141,6 +182,7 @@ export async function startDashboard(
       totalCostUsd,
       jevCallCount,
       domains: domainRows,
+      gating: { used: usedCount, gated: gatedCount, byReason: { ...gatedByReason } },
       lastEventId: nextId,
     };
   }
@@ -176,6 +218,31 @@ export async function startDashboard(
         stats.sumCredibility += credibility;
         if (credibility < LOW_CREDIBILITY_THRESHOLD) stats.lowCredibilityHits += 1;
         domains.set(domain, stats);
+      }
+      if (payload.action === "pass") usedCount += 1;
+    }
+
+    if (record.type === "gate") {
+      const payload = record.payload as Record<string, unknown>;
+      const reasons = payload.reasons;
+      const droppedBeyondCap = payload.dropped_beyond_cap;
+      const reason = payload.reason;
+      if (Array.isArray(reasons)) {
+        // One threshold-dropped search result.
+        gatedCount += 1;
+        for (const r of reasons) {
+          if (typeof r !== "string") continue;
+          const slug = classifyGateReason(r);
+          gatedByReason[slug] = (gatedByReason[slug] ?? 0) + 1;
+        }
+      } else if (typeof droppedBeyondCap === "number") {
+        // Aggregated beyond-judge-cap truncation for one search.
+        gatedCount += droppedBeyondCap;
+        gatedByReason.judge_cap_unjudged = (gatedByReason.judge_cap_unjudged ?? 0) + droppedBeyondCap;
+      } else if (typeof reason === "string") {
+        // A pre-fetch refusal (guarded_fetch never reached the network).
+        gatedCount += 1;
+        gatedByReason.pre_fetch_refused = (gatedByReason.pre_fetch_refused ?? 0) + 1;
       }
     }
 
