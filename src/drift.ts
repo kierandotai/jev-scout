@@ -212,6 +212,8 @@ export async function runAccuracy(
 export interface Baseline {
   readonly rubric_version: string;
   readonly written_at: string;
+  /** Provider that served the baseline run (absent on pre-1.3 baselines). */
+  readonly transport?: string;
   readonly report: AccuracyReport;
 }
 
@@ -364,6 +366,7 @@ async function main(): Promise<void> {
   // A key is present: build a real client. Provider resolution ("auto") picks
   // OpenRouter or TypeSafe from env — never the mock provider on this path.
   const client = new JevClient({ warnOnMock: false });
+  const judgeTransport = client.provider.name;
   const judge: Judge = createJudge(client);
 
   const goldenSet = await loadGoldenSet(DEFAULT_GOLDEN_PATH);
@@ -388,6 +391,10 @@ async function main(): Promise<void> {
     const baseline: Baseline = {
       rubric_version: RUBRIC_VERSION,
       written_at: new Date().toISOString(),
+      // Which provider served the model for this baseline. Comparing runs made
+      // through different transports conflates provider drift with model drift,
+      // so later runs warn when this differs from their own transport.
+      transport: judgeTransport,
       report,
     };
     await writeFile(DEFAULT_BASELINE_PATH, `${JSON.stringify(baseline, null, 2)}\n`, "utf8");
@@ -413,6 +420,13 @@ async function main(): Promise<void> {
   }
 
   // action.kind === "report": rubric versions match, compare against baseline.
+  const baselineTransport = (existingBaseline as Baseline).transport;
+  if (baselineTransport !== undefined && baselineTransport !== judgeTransport) {
+    console.error(
+      `[drift] WARNING: baseline was measured via "${baselineTransport}" but this run used ` +
+        `"${judgeTransport}" — deltas below conflate transport differences with model drift.`,
+    );
+  }
   const drift = compareToBaseline(report, existingBaseline as Baseline);
 
   console.error(

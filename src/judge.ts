@@ -33,7 +33,7 @@ import {
  * Bump on ANY rubric wording change (instructions, levels, criteria).
  * Cache entries and drift baselines are keyed on this value.
  */
-export const RUBRIC_VERSION = "1.2.0";
+export const RUBRIC_VERSION = "1.3.0";
 
 // ---------------------------------------------------------------------------
 // Untrusted-content framing
@@ -88,7 +88,7 @@ export const RELEVANCE_LEVELS: readonly string[] = [
 export const CREDIBILITY_LEVELS: readonly string[] = [
   "SEO content-farm patterns: listicle title, keyword-stuffed snippet, aggregator domain",
   "personal blog, forum thread, or unaffiliated commentary",
-  "official documentation domain, standards body, primary source or first-party announcement, including first-party product documentation subdomains (docs.*, developer.*, code.* hosted by the product's own company)",
+  "official documentation domain, standards body, primary source or first-party announcement, including first-party product documentation subdomains (docs.*, developer.*, code.* hosted by the product's own company); or an independent testing organization or established news/review publication with named editorial standards (a testing lab, a major newspaper's review desk, a consumer-protection organization)",
 ];
 
 export const PAGE_CONTENT_CLASSES: Record<string, string> = {
@@ -97,6 +97,7 @@ export const PAGE_CONTENT_CLASSES: Record<string, string> = {
   forum: "community discussion: question-and-answer thread, mailing list, or issue comments",
   marketing: "promotional page whose purpose is to sell a product, service, or signup",
   spam: "auto-generated, scraped, or keyword-stuffed filler with no substantive content",
+  other: "none of the above fits: a login wall, error page, media file, tool output, or any page the other classes do not describe",
 };
 
 const RELEVANCE_QUESTION =
