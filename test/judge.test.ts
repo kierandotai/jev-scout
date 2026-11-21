@@ -335,7 +335,7 @@ test("rubric levels are the pinned observable-signal wording", async () => {
   assert.deepEqual(CREDIBILITY_LEVELS, [
     "SEO content-farm patterns: listicle title, keyword-stuffed snippet, aggregator domain",
     "personal blog, forum thread, or unaffiliated commentary",
-    "official documentation domain, standards body, primary source or first-party announcement, including first-party product documentation subdomains (docs.*, developer.*, code.* hosted by the product's own company)",
+    "official documentation domain, standards body, primary source or first-party announcement, including first-party product documentation subdomains (docs.*, developer.*, code.* hosted by the product's own company); or an independent testing organization or established news/review publication with named editorial standards (a testing lab, a major newspaper's review desk, a consumer-protection organization)",
   ]);
   assert.deepEqual(Object.keys(PAGE_CONTENT_CLASSES), [
     "docs",
@@ -343,6 +343,7 @@ test("rubric levels are the pinned observable-signal wording", async () => {
     "forum",
     "marketing",
     "spam",
+    "other",
   ]);
 
   const { provider, judge } = judgeWith(RESULT_ANSWERS);

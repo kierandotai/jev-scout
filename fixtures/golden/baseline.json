@@ -1,6 +1,7 @@
 {
-  "rubric_version": "1.2.0",
-  "written_at": "2026-09-20T00:05:45.972Z",
+  "rubric_version": "1.3.0",
+  "written_at": "2026-09-21T14:27:49.684Z",
+  "transport": "typesafe",
   "report": {
     "items": [
       {
@@ -13,12 +14,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.92,
-          "credibility": 1.94
+          "relevance": 1.93,
+          "credibility": 1.95
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.89
+        "confidence": 0.905
       },
       {
         "id": "typesafe-docs-02",
@@ -30,12 +31,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.74,
-          "credibility": 1.95
+          "relevance": 1.75,
+          "credibility": 1.96
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.77
+        "confidence": 0.7849999999999999
       },
       {
         "id": "typesafe-docs-03",
@@ -47,12 +48,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.7,
-          "credibility": 1.65
+          "relevance": 1.74,
+          "credibility": 1.77
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.505
+        "confidence": 0.63
       },
       {
         "id": "typesafe-docs-04",
@@ -64,12 +65,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.01,
+          "relevance": 1,
           "credibility": 1
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.985
+        "confidence": 0.99
       },
       {
         "id": "typesafe-docs-05",
@@ -98,12 +99,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.8,
+          "relevance": 0.78,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.835
+        "confidence": 0.825
       },
       {
         "id": "mcp-sdk-01",
@@ -116,11 +117,11 @@
         },
         "actual": {
           "relevance": 1.51,
-          "credibility": 1.84
+          "credibility": 1.87
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.515
+        "confidence": 0.535
       },
       {
         "id": "mcp-sdk-02",
@@ -132,12 +133,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.69,
-          "credibility": 1.67
+          "relevance": 1.66,
+          "credibility": 1.64
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.52
+        "confidence": 0.48
       },
       {
         "id": "mcp-sdk-03",
@@ -149,12 +150,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.3,
+          "relevance": 1.35,
           "credibility": 1.99
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.735
+        "confidence": 0.71
       },
       {
         "id": "mcp-sdk-04",
@@ -171,7 +172,7 @@
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.685
+        "confidence": 0.69
       },
       {
         "id": "mcp-sdk-05",
@@ -200,12 +201,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.9,
+          "relevance": 0.91,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.885
+        "confidence": 0.895
       },
       {
         "id": "mcp-sdk-07",
@@ -217,12 +218,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.52,
+          "relevance": 0.55,
           "credibility": 0
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.635
+        "confidence": 0.655
       },
       {
         "id": "ssrf-node-01",
@@ -234,12 +235,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.62,
-          "credibility": 1.54
+          "relevance": 1.63,
+          "credibility": 1.88
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.37
+        "confidence": 0.63
       },
       {
         "id": "ssrf-node-02",
@@ -251,12 +252,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.58,
+          "relevance": 1.59,
           "credibility": 2
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.685
+        "confidence": 0.6950000000000001
       },
       {
         "id": "ssrf-node-03",
@@ -268,12 +269,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.4,
-          "credibility": 1.98
+          "relevance": 1.34,
+          "credibility": 1.99
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.535
+        "confidence": 0.61
       },
       {
         "id": "ssrf-node-04",
@@ -290,7 +291,7 @@
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.7949999999999999
+        "confidence": 0.79
       },
       {
         "id": "ssrf-node-05",
@@ -303,11 +304,11 @@
         },
         "actual": {
           "relevance": 1.04,
-          "credibility": 1
+          "credibility": 1.01
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.96
+        "confidence": 0.95
       },
       {
         "id": "ssrf-node-06",
@@ -319,12 +320,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.89,
+          "relevance": 0.92,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.9
+        "confidence": 0.9099999999999999
       },
       {
         "id": "ssrf-node-07",
@@ -336,12 +337,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.17,
+          "relevance": 0.21,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.87
+        "confidence": 0.8400000000000001
       },
       {
         "id": "searxng-json-01",
@@ -354,7 +355,7 @@
         },
         "actual": {
           "relevance": 1.94,
-          "credibility": 1.99
+          "credibility": 2
         },
         "relevance_hit": true,
         "credibility_hit": true,
@@ -370,12 +371,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.3,
-          "credibility": 1.95
+          "relevance": 1.34,
+          "credibility": 1.96
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.7250000000000001
+        "confidence": 0.705
       },
       {
         "id": "searxng-json-03",
@@ -387,12 +388,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.21,
+          "relevance": 1.24,
           "credibility": 1
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.8300000000000001
+        "confidence": 0.8049999999999999
       },
       {
         "id": "searxng-json-04",
@@ -404,12 +405,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 0.88,
+          "relevance": 0.91,
           "credibility": 1
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.905
+        "confidence": 0.9299999999999999
       },
       {
         "id": "searxng-json-05",
@@ -421,12 +422,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.77,
+          "relevance": 0.74,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.825
+        "confidence": 0.8
       },
       {
         "id": "vacuum-review-01",
@@ -439,11 +440,11 @@
         },
         "actual": {
           "relevance": 1.91,
-          "credibility": 0.63
+          "credibility": 1.95
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.455
+        "credibility_hit": true,
+        "confidence": 0.89
       },
       {
         "id": "vacuum-review-02",
@@ -455,12 +456,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.78,
-          "credibility": 0.36
+          "relevance": 1.8,
+          "credibility": 1.9
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.5700000000000001
+        "credibility_hit": true,
+        "confidence": 0.7749999999999999
       },
       {
         "id": "vacuum-review-03",
@@ -472,12 +473,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.88,
-          "credibility": 1.35
+          "relevance": 1.87,
+          "credibility": 1.95
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.42
+        "credibility_hit": true,
+        "confidence": 0.865
       },
       {
         "id": "vacuum-review-04",
@@ -489,12 +490,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.33,
+          "relevance": 1.37,
           "credibility": 1.99
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.65
+        "confidence": 0.63
       },
       {
         "id": "vacuum-review-05",
@@ -506,12 +507,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.86,
-          "credibility": 0.82
+          "relevance": 1.85,
+          "credibility": 1.99
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.63
+        "credibility_hit": true,
+        "confidence": 0.88
       },
       {
         "id": "vacuum-review-06",
@@ -523,12 +524,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.59,
+          "relevance": 1.6,
           "credibility": 1
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.69
+        "confidence": 0.705
       },
       {
         "id": "vacuum-review-07",
@@ -540,7 +541,7 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.91,
+          "relevance": 1.92,
           "credibility": 1
         },
         "relevance_hit": true,
@@ -557,12 +558,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.81,
-          "credibility": 0.87
+          "relevance": 1.8,
+          "credibility": 1.11
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.755
+        "confidence": 0.6950000000000001
       },
       {
         "id": "vacuum-review-09",
@@ -574,12 +575,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.05,
-          "credibility": 1.99
+          "relevance": 0.98,
+          "credibility": 2
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.6699999999999999
+        "confidence": 0.665
       },
       {
         "id": "vacuum-review-10",
@@ -591,12 +592,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.14,
+          "relevance": 1.15,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.885
+        "confidence": 0.875
       },
       {
         "id": "vacuum-review-11",
@@ -608,7 +609,7 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.46,
+          "relevance": 1.45,
           "credibility": 0
         },
         "relevance_hit": true,
@@ -625,12 +626,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.79,
-          "credibility": 0.07
+          "relevance": 1.84,
+          "credibility": 0.08
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.7949999999999999
+        "confidence": 0.8200000000000001
       },
       {
         "id": "vacuum-review-13",
@@ -642,12 +643,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.69,
-          "credibility": 0.87
+          "relevance": 1.67,
+          "credibility": 0.83
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.27
+        "confidence": 0.255
       },
       {
         "id": "vacuum-review-14",
@@ -659,12 +660,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 0.87,
-          "credibility": 0.77
+          "relevance": 0.83,
+          "credibility": 1.95
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.16
+        "credibility_hit": true,
+        "confidence": 0.65
       },
       {
         "id": "vacuum-review-15",
@@ -676,12 +677,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 0.85,
+          "relevance": 0.86,
           "credibility": 0.03
         },
         "relevance_hit": false,
         "credibility_hit": false,
-        "confidence": 0.865
+        "confidence": 0.86
       },
       {
         "id": "iron-deficiency-01",
@@ -694,11 +695,11 @@
         },
         "actual": {
           "relevance": 1.75,
-          "credibility": 1.81
+          "credibility": 1.89
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.665
+        "confidence": 0.725
       },
       {
         "id": "iron-deficiency-02",
@@ -710,12 +711,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.81,
-          "credibility": 1.62
+          "relevance": 1.79,
+          "credibility": 1.77
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.57
+        "confidence": 0.67
       },
       {
         "id": "iron-deficiency-03",
@@ -728,11 +729,11 @@
         },
         "actual": {
           "relevance": 1.9,
-          "credibility": 1.97
+          "credibility": 1.98
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.8999999999999999
+        "confidence": 0.9099999999999999
       },
       {
         "id": "iron-deficiency-04",
@@ -744,12 +745,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.74,
-          "credibility": 1.9
+          "relevance": 1.76,
+          "credibility": 1.93
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.735
+        "confidence": 0.77
       },
       {
         "id": "iron-deficiency-05",
@@ -761,12 +762,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 0.61,
-          "credibility": 1.87
+          "relevance": 0.62,
+          "credibility": 1.91
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.535
+        "confidence": 0.47
       },
       {
         "id": "iron-deficiency-06",
@@ -778,12 +779,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.5,
-          "credibility": 1.65
+          "relevance": 1.39,
+          "credibility": 1.78
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.36
+        "confidence": 0.465
       },
       {
         "id": "iron-deficiency-07",
@@ -795,12 +796,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.9,
-          "credibility": 0.03
+          "relevance": 1.89,
+          "credibility": 0.71
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.8999999999999999
+        "credibility_hit": true,
+        "confidence": 0.415
       },
       {
         "id": "iron-deficiency-08",
@@ -851,7 +852,7 @@
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.98
+        "confidence": 0.985
       },
       {
         "id": "iron-deficiency-11",
@@ -868,7 +869,7 @@
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.9
+        "confidence": 0.895
       },
       {
         "id": "iron-deficiency-12",
@@ -880,12 +881,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.91,
+          "relevance": 0.89,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.9
+        "confidence": 0.89
       },
       {
         "id": "iron-deficiency-13",
@@ -902,7 +903,7 @@
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.6950000000000001
+        "confidence": 0.7
       },
       {
         "id": "iron-deficiency-14",
@@ -914,12 +915,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.84,
-          "credibility": 0.83
+          "relevance": 1.86,
+          "credibility": 1.52
         },
         "relevance_hit": true,
-        "credibility_hit": true,
-        "confidence": 0.385
+        "credibility_hit": false,
+        "confidence": 0.535
       },
       {
         "id": "iron-deficiency-15",
@@ -931,12 +932,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.31,
+          "relevance": 0.25,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.765
+        "confidence": 0.81
       },
       {
         "id": "eu-ai-act-delay-01",
@@ -948,12 +949,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.74,
-          "credibility": 1.91
+          "relevance": 1.79,
+          "credibility": 1.95
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.735
+        "confidence": 0.8049999999999999
       },
       {
         "id": "eu-ai-act-delay-02",
@@ -965,8 +966,8 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.81,
-          "credibility": 1.98
+          "relevance": 1.8,
+          "credibility": 1.99
         },
         "relevance_hit": true,
         "credibility_hit": true,
@@ -982,12 +983,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.57,
-          "credibility": 1.04
+          "relevance": 1.59,
+          "credibility": 1.96
         },
         "relevance_hit": true,
-        "credibility_hit": false,
-        "confidence": 0.18
+        "credibility_hit": true,
+        "confidence": 0.6599999999999999
       },
       {
         "id": "eu-ai-act-delay-04",
@@ -999,12 +1000,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.46,
-          "credibility": 0.76
+          "relevance": 1.41,
+          "credibility": 1.83
         },
         "relevance_hit": false,
-        "credibility_hit": false,
-        "confidence": 0.135
+        "credibility_hit": true,
+        "confidence": 0.5549999999999999
       },
       {
         "id": "eu-ai-act-delay-05",
@@ -1016,12 +1017,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.15,
+          "relevance": 1.07,
           "credibility": 1.99
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.685
+        "confidence": 0.725
       },
       {
         "id": "eu-ai-act-delay-06",
@@ -1033,12 +1034,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.46,
-          "credibility": 0.92
+          "relevance": 1.53,
+          "credibility": 1.96
         },
         "relevance_hit": true,
-        "credibility_hit": true,
-        "confidence": 0.19999999999999998
+        "credibility_hit": false,
+        "confidence": 0.61
       },
       {
         "id": "eu-ai-act-delay-07",
@@ -1050,12 +1051,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.02,
-          "credibility": 0.98
+          "relevance": 1.04,
+          "credibility": 1.86
         },
         "relevance_hit": true,
-        "credibility_hit": true,
-        "confidence": 0.895
+        "credibility_hit": false,
+        "confidence": 0.8500000000000001
       },
       {
         "id": "eu-ai-act-delay-08",
@@ -1067,12 +1068,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.12,
-          "credibility": 0.99
+          "relevance": 1.19,
+          "credibility": 1
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.9
+        "confidence": 0.85
       },
       {
         "id": "eu-ai-act-delay-09",
@@ -1084,7 +1085,7 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 0.99,
+          "relevance": 1,
           "credibility": 1
         },
         "relevance_hit": true,
@@ -1102,7 +1103,7 @@
         },
         "actual": {
           "relevance": 1.02,
-          "credibility": 0.99
+          "credibility": 1
         },
         "relevance_hit": true,
         "credibility_hit": true,
@@ -1118,12 +1119,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.38,
-          "credibility": 0.61
+          "relevance": 1.34,
+          "credibility": 1.91
         },
         "relevance_hit": false,
-        "credibility_hit": false,
-        "confidence": 0.23500000000000001
+        "credibility_hit": true,
+        "confidence": 0.66
       },
       {
         "id": "eu-ai-act-delay-12",
@@ -1135,12 +1136,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.96,
+          "relevance": 0.97,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.9650000000000001
+        "confidence": 0.97
       },
       {
         "id": "eu-ai-act-delay-13",
@@ -1152,12 +1153,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.15,
+          "relevance": 1.16,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.87
+        "confidence": 0.86
       },
       {
         "id": "eu-ai-act-delay-14",
@@ -1169,12 +1170,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.01,
-          "credibility": 0.31
+          "relevance": 1,
+          "credibility": 0.33
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.75
+        "confidence": 0.735
       },
       {
         "id": "eu-ai-act-delay-15",
@@ -1186,12 +1187,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.12,
+          "relevance": 1.09,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.895
+        "confidence": 0.915
       },
       {
         "id": "ftc-negopt-rule-01",
@@ -1203,12 +1204,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.69,
-          "credibility": 1.95
+          "relevance": 1.63,
+          "credibility": 1.96
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.7350000000000001
+        "confidence": 0.695
       },
       {
         "id": "ftc-negopt-rule-02",
@@ -1220,12 +1221,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.12,
-          "credibility": 1.95
+          "relevance": 1.1,
+          "credibility": 1.97
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.865
+        "confidence": 0.895
       },
       {
         "id": "ftc-negopt-rule-03",
@@ -1237,12 +1238,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.35,
-          "credibility": 1.95
+          "relevance": 1.37,
+          "credibility": 1.96
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.6900000000000001
+        "confidence": 0.68
       },
       {
         "id": "ftc-negopt-rule-04",
@@ -1254,12 +1255,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.17,
-          "credibility": 1.92
+          "relevance": 1.15,
+          "credibility": 1.94
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.815
+        "confidence": 0.8400000000000001
       },
       {
         "id": "ftc-negopt-rule-05",
@@ -1272,11 +1273,11 @@
         },
         "actual": {
           "relevance": 0.79,
-          "credibility": 1.94
+          "credibility": 1.97
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.74
+        "confidence": 0.7649999999999999
       },
       {
         "id": "ftc-negopt-rule-06",
@@ -1289,11 +1290,11 @@
         },
         "actual": {
           "relevance": 1.03,
-          "credibility": 0.34
+          "credibility": 0.96
         },
         "relevance_hit": false,
-        "credibility_hit": false,
-        "confidence": 0.725
+        "credibility_hit": true,
+        "confidence": 0.475
       },
       {
         "id": "ftc-negopt-rule-07",
@@ -1306,11 +1307,11 @@
         },
         "actual": {
           "relevance": 1,
-          "credibility": 0.13
+          "credibility": 0.18
         },
         "relevance_hit": true,
         "credibility_hit": false,
-        "confidence": 0.905
+        "confidence": 0.865
       },
       {
         "id": "ftc-negopt-rule-08",
@@ -1339,12 +1340,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.16,
-          "credibility": 0.06
+          "relevance": 1.11,
+          "credibility": 0.08
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.825
+        "confidence": 0.8400000000000001
       },
       {
         "id": "ftc-negopt-rule-10",
@@ -1356,12 +1357,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 0.8,
-          "credibility": 0.95
+          "relevance": 0.77,
+          "credibility": 0.98
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.815
+        "confidence": 0.8049999999999999
       },
       {
         "id": "ftc-negopt-rule-11",
@@ -1390,12 +1391,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.92,
+          "relevance": 0.94,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.94
+        "confidence": 0.9550000000000001
       },
       {
         "id": "ftc-negopt-rule-13",
@@ -1424,12 +1425,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.98,
+          "relevance": 0.99,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.97
+        "confidence": 0.9650000000000001
       },
       {
         "id": "ftc-negopt-rule-15",
@@ -1442,11 +1443,11 @@
         },
         "actual": {
           "relevance": 0.95,
-          "credibility": 1.15
+          "credibility": 1.45
         },
         "relevance_hit": true,
         "credibility_hit": false,
-        "confidence": 0.595
+        "confidence": 0.545
       },
       {
         "id": "japan-visa-01",
@@ -1458,12 +1459,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.77,
-          "credibility": 1.92
+          "relevance": 1.78,
+          "credibility": 1.94
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.77
+        "confidence": 0.79
       },
       {
         "id": "japan-visa-02",
@@ -1475,12 +1476,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.87,
-          "credibility": 1.92
+          "relevance": 1.86,
+          "credibility": 1.94
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.835
+        "confidence": 0.855
       },
       {
         "id": "japan-visa-03",
@@ -1492,12 +1493,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 0.51,
+          "relevance": 0.6,
           "credibility": 1.92
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.5549999999999999
+        "confidence": 0.49
       },
       {
         "id": "japan-visa-04",
@@ -1509,12 +1510,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.03,
-          "credibility": 1.72
+          "relevance": 1.05,
+          "credibility": 1.87
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.7649999999999999
+        "confidence": 0.865
       },
       {
         "id": "japan-visa-05",
@@ -1526,12 +1527,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 1.38,
+          "relevance": 1.4,
           "credibility": 1.97
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.6799999999999999
+        "confidence": 0.6599999999999999
       },
       {
         "id": "japan-visa-06",
@@ -1543,12 +1544,12 @@
           "credibility_level": 1
         },
         "actual": {
-          "relevance": 1.58,
-          "credibility": 1.1
+          "relevance": 1.59,
+          "credibility": 1.26
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.18
+        "confidence": 0.195
       },
       {
         "id": "japan-visa-07",
@@ -1612,7 +1613,7 @@
         },
         "actual": {
           "relevance": 1.02,
-          "credibility": 0.99
+          "credibility": 1
         },
         "relevance_hit": true,
         "credibility_hit": true,
@@ -1628,12 +1629,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.97,
+          "relevance": 0.96,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.965
+        "confidence": 0.96
       },
       {
         "id": "japan-visa-12",
@@ -1645,12 +1646,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.04,
+          "relevance": 1.07,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.9550000000000001
+        "confidence": 0.94
       },
       {
         "id": "japan-visa-13",
@@ -1662,12 +1663,12 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 0.81,
-          "credibility": 0.01
+          "relevance": 0.79,
+          "credibility": 0
         },
         "relevance_hit": false,
         "credibility_hit": true,
-        "confidence": 0.85
+        "confidence": 0.835
       },
       {
         "id": "japan-visa-14",
@@ -1679,12 +1680,12 @@
           "credibility_level": 2
         },
         "actual": {
-          "relevance": 0.47,
+          "relevance": 0.46,
           "credibility": 1.95
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.61
+        "confidence": 0.62
       },
       {
         "id": "japan-visa-15",
@@ -1696,20 +1697,20 @@
           "credibility_level": 0
         },
         "actual": {
-          "relevance": 1.15,
+          "relevance": 1.17,
           "credibility": 0
         },
         "relevance_hit": true,
         "credibility_hit": true,
-        "confidence": 0.875
+        "confidence": 0.86
       }
     ],
     "summary": {
       "n": 100,
       "relevance_accuracy": 0.86,
-      "credibility_accuracy": 0.87,
-      "mean_confidence": 0.7481,
-      "rubric_version": "1.2.0"
+      "credibility_accuracy": 0.94,
+      "mean_confidence": 0.7839999999999998,
+      "rubric_version": "1.3.0"
     }
   }
 }

@@ -368,6 +368,10 @@ function renderCaveats(summary: AccuracySummary): string {
       "probability-weighted score to the nearest rubric level before comparing it to the labeled " +
       "band/level. Grading raw decimals against exact integers understates accuracy — see " +
       "docs/accuracy/blog-post.md for the 28%-vs-88% example that motivated this rule.",
+    "- **What confidence means:** per TypeSafe's own guidance, choice/score confidence summarizes " +
+      "how concentrated the answer's probability distribution is — it is not a statement about " +
+      "overall workflow correctness. Mean confidence here is a distribution-sharpness signal, " +
+      "nothing more.",
   ].join("\n");
 }
 
