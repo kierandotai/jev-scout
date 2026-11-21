@@ -149,8 +149,9 @@ export async function runAccuracy(
         break;
       } catch (err) {
         const status = err instanceof Error && "status" in err ? (err as { status?: number }).status : undefined;
-        if (status === 429 && attempt < waits.length) {
-          process.stderr.write(`[drift] rate-limited on ${item.id}; waiting ${waits[attempt]! / 1000}s\n`);
+        const transient = status === 429 || (status !== undefined && status >= 500);
+        if (transient && attempt < waits.length) {
+          process.stderr.write(`[drift] transient ${status} on ${item.id}; waiting ${waits[attempt]! / 1000}s\n`);
           await new Promise((r) => setTimeout(r, waits[attempt]));
           continue;
         }

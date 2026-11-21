@@ -293,6 +293,77 @@
   }
 
   tbody tr:last-child td { border-bottom: none; }
+
+  /* --- Used vs gated --- */
+
+  #gating-headline {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .gating-stats {
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+  }
+
+  .gating-stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .gating-stat-value.used { color: var(--good); }
+  .gating-stat-value.gated { color: var(--bad); }
+
+  .gating-stat-label {
+    margin-top: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+  }
+
+  .gating-proportion {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--track-bg);
+    overflow: hidden;
+    display: flex;
+  }
+
+  .gating-proportion-used { background: var(--good); height: 100%; }
+  .gating-proportion-gated { background: var(--bad); height: 100%; }
+
+  .gating-row {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .gating-row:last-child { border-bottom: none; }
+
+  .gating-row-domain {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    flex: 0 0 auto;
+  }
+
+  .gating-row-reason {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    color: var(--fg-muted);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    word-break: break-word;
+  }
 </style>
 </head>
 <body>
@@ -328,6 +399,12 @@
         <tbody id="domains-body"></tbody>
       </table>
     </section>
+
+    <section class="panel" id="gating-panel">
+      <h2>Used vs gated</h2>
+      <div id="gating-headline"></div>
+      <div id="gating-list"></div>
+    </section>
   </main>
 
   <script>
@@ -345,6 +422,8 @@
     var tickerEl = document.getElementById("ticker");
     var domainsBody = document.getElementById("domains-body");
     var banner = document.getElementById("banner");
+    var gatingHeadlineEl = document.getElementById("gating-headline");
+    var gatingListEl = document.getElementById("gating-list");
 
     // --- State ---------------------------------------------------------
 
@@ -364,6 +443,19 @@
     var searches = Object.create(null);
     /** search_ids, most-recently-seen group first. */
     var searchOrder = [];
+
+    // --- Used-vs-gated panel state ------------------------------------
+
+    /** Results actually passed to the agent ("result" events, action: "pass"). */
+    var usedCount = 0;
+    /** Threshold drops + beyond-cap truncations + pre-fetch refusals. */
+    var gatedCount = 0;
+    /** reason slug (see classifyGateReason) -> count. Not itself rendered;
+     * kept in sync with the server for parity/debugging. */
+    var gatedByReason = Object.create(null);
+    /** Most recent gated entries, newest first, capped at MAX_GATED_ENTRIES. */
+    var gatedEntries = [];
+    var MAX_GATED_ENTRIES = 10;
 
     // --- DOM helpers: textContent / createElement ONLY. No HTML-string
     // based DOM insertion anywhere in this file — every string below this
@@ -624,6 +716,118 @@
       domains[domain] = stats;
     }
 
+    // --- Used-vs-gated rendering ----------------------------------------
+
+    // Mirrors dashboard.ts's classifyGateReason: reason sentences embed a
+    // computed score, so two drops for the same underlying cause never
+    // produce identical strings — classify to a stable slug instead.
+    function classifyGateReason(reason) {
+      if (/credibility/i.test(reason)) return "low_credibility";
+      if (/relevance/i.test(reason)) return "low_relevance";
+      return "other";
+    }
+
+    // Numeric aggregates only (usedCount/gatedCount/gatedByReason) — kept
+    // separate from pushGatedEntry (the visual list) the same way the
+    // domain table separates applyDomainUpdate from feed rendering.
+    function applyGatingUpdate(record) {
+      if (record.type === "result") {
+        var resultPayload = record.payload || {};
+        if (resultPayload.action === "pass") usedCount += 1;
+        return;
+      }
+      if (record.type !== "gate") return;
+      var payload = record.payload || {};
+      if (Array.isArray(payload.reasons)) {
+        gatedCount += 1;
+        for (var i = 0; i < payload.reasons.length; i++) {
+          var reasonText = payload.reasons[i];
+          if (typeof reasonText !== "string") continue;
+          var slug = classifyGateReason(reasonText);
+          gatedByReason[slug] = (gatedByReason[slug] || 0) + 1;
+        }
+      } else if (typeof payload.dropped_beyond_cap === "number") {
+        gatedCount += payload.dropped_beyond_cap;
+        gatedByReason.judge_cap_unjudged = (gatedByReason.judge_cap_unjudged || 0) + payload.dropped_beyond_cap;
+      } else if (typeof payload.reason === "string") {
+        gatedCount += 1;
+        gatedByReason.pre_fetch_refused = (gatedByReason.pre_fetch_refused || 0) + 1;
+      }
+    }
+
+    // The recent-entries list is purely presentational (like the feed
+    // panel) — it always reflects every "gate" event seen, replayed or
+    // live, regardless of whether /api/summary already counted it.
+    function pushGatedEntry(record) {
+      if (record.type !== "gate") return;
+      var payload = record.payload || {};
+      var entry;
+      if (Array.isArray(payload.reasons)) {
+        entry = {
+          domain: asString(payload.domain, asString(payload.url, "(unknown)")),
+          reasons: payload.reasons.filter(function (r) { return typeof r === "string"; }),
+        };
+      } else if (typeof payload.dropped_beyond_cap === "number") {
+        var n = payload.dropped_beyond_cap;
+        entry = {
+          domain: null,
+          reasons: [n + (n === 1 ? " result" : " results") + " truncated beyond judge cap"],
+        };
+      } else if (typeof payload.reason === "string") {
+        entry = {
+          domain: asString(payload.domain, asString(payload.url, "(unknown)")),
+          reasons: [payload.reason],
+        };
+      } else {
+        return;
+      }
+      gatedEntries.unshift(entry);
+      if (gatedEntries.length > MAX_GATED_ENTRIES) gatedEntries.length = MAX_GATED_ENTRIES;
+    }
+
+    function renderGatingHeadline() {
+      clearChildren(gatingHeadlineEl);
+      var total = usedCount + gatedCount;
+      var usedPct = total === 0 ? 0 : (usedCount / total) * 100;
+
+      var stats = textEl("div", "gating-stats");
+      var usedStat = textEl("div", "gating-stat");
+      usedStat.appendChild(textEl("div", "gating-stat-value used", usedCount));
+      usedStat.appendChild(textEl("div", "gating-stat-label", "used"));
+      stats.appendChild(usedStat);
+      var gatedStat = textEl("div", "gating-stat");
+      gatedStat.appendChild(textEl("div", "gating-stat-value gated", gatedCount));
+      gatedStat.appendChild(textEl("div", "gating-stat-label", "gated"));
+      stats.appendChild(gatedStat);
+      gatingHeadlineEl.appendChild(stats);
+
+      var bar = textEl("div", "gating-proportion");
+      if (total > 0) {
+        var usedFill = textEl("div", "gating-proportion-used");
+        usedFill.style.width = usedPct.toFixed(1) + "%";
+        var gatedFill = textEl("div", "gating-proportion-gated");
+        gatedFill.style.width = (100 - usedPct).toFixed(1) + "%";
+        bar.appendChild(usedFill);
+        bar.appendChild(gatedFill);
+      }
+      gatingHeadlineEl.appendChild(bar);
+    }
+
+    function renderGatingList() {
+      clearChildren(gatingListEl);
+      if (gatedEntries.length === 0) {
+        gatingListEl.appendChild(textEl("p", "empty-state", "nothing gated"));
+        return;
+      }
+      for (var i = 0; i < gatedEntries.length; i++) {
+        var entry = gatedEntries[i];
+        var row = textEl("div", "gating-row");
+        row.appendChild(textEl("span", "gating-row-domain", entry.domain || "(beyond cap)"));
+        row.appendChild(textEl("span", "gating-row-reason", entry.reasons.join("; ")));
+        gatingListEl.appendChild(row);
+      }
+    }
+
     // --- SSE wiring ----------------------------------------------------
 
     var es = null;
@@ -640,6 +844,8 @@
       if (!isNew) return;
 
       handleFeedEvent(record);
+      pushGatedEntry(record);
+      renderGatingList();
 
       var alreadyCounted = isFinite(id) && id <= summaryLastEventId;
       if (alreadyCounted) return;
@@ -649,8 +855,10 @@
         jevCallCount += 1;
       }
       if (record.type === "result") applyDomainUpdate(record.payload || {});
+      applyGatingUpdate(record);
       renderTicker();
       renderDomainsTable();
+      renderGatingHeadline();
     }
 
     function connectSSE() {
@@ -697,12 +905,24 @@
           lowCredibilityHits: asNumber(row.lowCredibilityHits) || 0,
         };
       }
+
+      var gating = summary.gating || {};
+      usedCount = asNumber(gating.used) || 0;
+      gatedCount = asNumber(gating.gated) || 0;
+      gatedByReason = Object.create(null);
+      var byReason = gating.byReason || {};
+      for (var reasonKey in byReason) {
+        if (!Object.prototype.hasOwnProperty.call(byReason, reasonKey)) continue;
+        gatedByReason[reasonKey] = asNumber(byReason[reasonKey]) || 0;
+      }
     }
 
     function init() {
       renderTicker();
       renderDomainsTable();
       renderFeed();
+      renderGatingHeadline();
+      renderGatingList();
 
       fetch("/api/summary")
         .then(function (res) { return res.json(); })
@@ -710,6 +930,7 @@
           applySummary(summary);
           renderTicker();
           renderDomainsTable();
+          renderGatingHeadline();
         })
         .catch(function () {
           // Fall back to zeroed state; SSE below still tries to connect.

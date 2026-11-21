@@ -519,3 +519,256 @@ test("process-exit regression: a dashboard with a live SSE client never blocks t
   conn.destroy();
   assert.equal(exitCode, 0);
 });
+
+// ---------------------------------------------------------------------------
+// "used vs gated" panel (deferred 4th panel): the /api/summary `gating`
+// aggregate, and live SSE delivery of the "gate" events that feed it.
+// ---------------------------------------------------------------------------
+
+test("gating aggregate in /api/summary reflects a mix of pass/drop/truncation/pre-fetch-refusal events", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    const before = (await fetch(`${dash.url}/api/summary`).then((r) => r.json())) as {
+      gating: { used: number; gated: number; byReason: Record<string, number> };
+    };
+    assert.deepEqual(before.gating, { used: 0, gated: 0, byReason: {} });
+
+    // Two results actually passed to the agent.
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "result",
+      payload: {
+        url: "https://a.example/1",
+        domain: "a.example",
+        rank: 0,
+        cache_hit: false,
+        scored: true,
+        action: "pass",
+      },
+    });
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "result",
+      payload: {
+        url: "https://b.example/1",
+        domain: "b.example",
+        rank: 1,
+        cache_hit: false,
+        scored: true,
+        action: "pass",
+      },
+    });
+
+    // A threshold drop: both relevance and credibility below threshold —
+    // the "result" event with action: "drop" plus the paired "gate" event,
+    // mirroring pipeline.ts's runSearch.
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "result",
+      payload: {
+        url: "https://spam.example/x",
+        domain: "spam.example",
+        rank: 2,
+        cache_hit: false,
+        scored: true,
+        action: "drop",
+      },
+    });
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "gate",
+      payload: {
+        url: "https://spam.example/x",
+        domain: "spam.example",
+        reasons: [
+          "relevance 0.30 is below the gate threshold 0.5",
+          "credibility 0.20 is below the gate threshold 1",
+        ],
+      },
+    });
+
+    // Beyond-judge-cap truncation, aggregated per search (pipeline.ts gate
+    // mode: one "gate" event carrying dropped_beyond_cap).
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "gate",
+      payload: { dropped_beyond_cap: 3 },
+    });
+
+    // A pre-fetch refusal (guarded_fetch's preFetchGate check, no network).
+    ledger.append({
+      session: "s",
+      search_id: "search-2",
+      type: "gate",
+      payload: {
+        url: "https://spamfarm.example/y",
+        domain: "spamfarm.example",
+        goal: "check the claim",
+        reason: 'domain "spamfarm.example" has a cached credibility score of 0.20, below the gate threshold 1',
+      },
+    });
+
+    const after = (await fetch(`${dash.url}/api/summary`).then((r) => r.json())) as {
+      gating: { used: number; gated: number; byReason: Record<string, number> };
+      // Existing fields must stay intact alongside the new `gating` field.
+      totalCostUsd: number;
+      jevCallCount: number;
+      domains: unknown[];
+      eventCounts: Record<string, number>;
+    };
+    assert.equal(after.gating.used, 2);
+    assert.equal(after.gating.gated, 1 + 3 + 1);
+    assert.deepEqual(after.gating.byReason, {
+      low_relevance: 1,
+      low_credibility: 1,
+      judge_cap_unjudged: 3,
+      pre_fetch_refused: 1,
+    });
+    // Existing summary fields are unaffected by the new aggregate.
+    assert.equal(after.totalCostUsd, 0);
+    assert.equal(after.jevCallCount, 0);
+    assert.equal(after.eventCounts.gate, 3);
+  } finally {
+    await dash.close();
+  }
+});
+
+test("a late-joining dashboard's /api/summary gating aggregate matches events that occurred before any client connected", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    // Events fire before any browser/SSE client ever subscribes -- exactly
+    // the scenario the /api/summary seed exists to cover.
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "result",
+      payload: {
+        url: "https://ok.example/1",
+        domain: "ok.example",
+        rank: 0,
+        cache_hit: false,
+        scored: true,
+        action: "pass",
+      },
+    });
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "gate",
+      payload: {
+        url: "https://bad.example/1",
+        domain: "bad.example",
+        reasons: ["relevance 0.10 is below the gate threshold 0.5"],
+      },
+    });
+
+    const summary = (await fetch(`${dash.url}/api/summary`).then((r) => r.json())) as {
+      gating: { used: number; gated: number; byReason: Record<string, number> };
+    };
+    assert.equal(summary.gating.used, 1);
+    assert.equal(summary.gating.gated, 1);
+    assert.deepEqual(summary.gating.byReason, { low_relevance: 1 });
+  } finally {
+    await dash.close();
+  }
+});
+
+test("annotate-mode session (no drops) reports a zeroed gating aggregate", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "result",
+      payload: {
+        url: "https://a.example/1",
+        domain: "a.example",
+        rank: 0,
+        cache_hit: false,
+        scored: true,
+        action: "pass",
+      },
+    });
+    ledger.append({
+      session: "s",
+      search_id: "search-1",
+      type: "result",
+      payload: {
+        url: "https://b.example/1",
+        domain: "b.example",
+        rank: 1,
+        cache_hit: false,
+        scored: false,
+        action: "pass",
+        judge_skipped: "judge_cap",
+      },
+    });
+
+    const summary = (await fetch(`${dash.url}/api/summary`).then((r) => r.json())) as {
+      gating: { used: number; gated: number; byReason: Record<string, number> };
+    };
+    assert.equal(summary.gating.used, 2);
+    assert.equal(summary.gating.gated, 0);
+    assert.deepEqual(summary.gating.byReason, {});
+  } finally {
+    await dash.close();
+  }
+});
+
+test("a threshold-drop 'gate' event streamed live reaches an already-connected SSE client with its reasons intact", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    const conn = await connectSSE(`${dash.url}/events`);
+    ledger.append({
+      session: "s",
+      search_id: "search-live-gate",
+      type: "gate",
+      payload: {
+        url: "https://spam.example/z",
+        domain: "spam.example",
+        reasons: ["credibility 0.10 is below the gate threshold 1"],
+      },
+    });
+    const events = await conn.waitForEvents(1);
+    const parsed = JSON.parse(events[0]!.data) as {
+      type: string;
+      payload: { url: string; domain: string; reasons: string[] };
+    };
+    assert.equal(parsed.type, "gate");
+    assert.equal(parsed.payload.domain, "spam.example");
+    assert.deepEqual(parsed.payload.reasons, ["credibility 0.10 is below the gate threshold 1"]);
+    conn.destroy();
+  } finally {
+    await dash.close();
+  }
+});
+
+test("a beyond-cap-truncation 'gate' event (aggregated, no url/domain) streamed live reaches an SSE client intact", async () => {
+  const ledger = makeLedger();
+  const dash = await startDashboard(ledger, { port: 0 });
+  try {
+    const conn = await connectSSE(`${dash.url}/events`);
+    ledger.append({
+      session: "s",
+      search_id: "search-live-cap",
+      type: "gate",
+      payload: { dropped_beyond_cap: 4 },
+    });
+    const events = await conn.waitForEvents(1);
+    const parsed = JSON.parse(events[0]!.data) as { type: string; payload: { dropped_beyond_cap: number } };
+    assert.equal(parsed.type, "gate");
+    assert.equal(parsed.payload.dropped_beyond_cap, 4);
+    conn.destroy();
+  } finally {
+    await dash.close();
+  }
+});

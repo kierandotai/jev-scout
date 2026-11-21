@@ -10,7 +10,10 @@
       "domain": "docs.typesafe.ai"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "Exact entity (Jev, System One, /decisions) on TypeSafe's own docs domain. Clear-cut."
     }
@@ -26,7 +29,10 @@
       "domain": "docs.typesafe.ai"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "Same first-party docs domain, exact model id named. Clear-cut."
     }
@@ -42,7 +48,10 @@
       "domain": "openrouter.ai"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 2,
       "notes": "Exact entity present and it is a reputable gateway's own published API docs, but not TypeSafe's domain and marked alpha — genuinely ambiguous whether this counts as 'the official docs' the goal wants."
     }
@@ -58,7 +67,10 @@
       "domain": "dev.to"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 1,
       "notes": "Personal dev.to post; exact entity named but it's a third-party wrapper writeup, not documentation itself — ambiguous band."
     }
@@ -74,7 +86,10 @@
       "domain": "news.ycombinator.com"
     },
     "labels": {
-      "relevance_band": [1, 1],
+      "relevance_band": [
+        1,
+        1
+      ],
       "credibility_level": 1,
       "notes": "Forum discussion, same general topic and entity named, but not documentation — clearly a level-1 relevance case."
     }
@@ -90,7 +105,10 @@
       "domain": "top10aitools.example"
     },
     "labels": {
-      "relevance_band": [0, 1],
+      "relevance_band": [
+        0,
+        1
+      ],
       "credibility_level": 0,
       "notes": "Listicle title, keyword-stuffed snippet, aggregator-shaped domain. Jev is only namedropped in a ranked list, not documented."
     }
@@ -106,7 +124,10 @@
       "domain": "github.com"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "The actual SDK repository, exact API surface named. Clear-cut."
     }
@@ -122,7 +143,10 @@
       "domain": "code.claude.com"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "First-party integration docs from a major MCP client, names the exact API. Clear-cut."
     }
@@ -138,7 +162,10 @@
       "domain": "modelcontextprotocol.io"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 2,
       "notes": "The protocol spec itself is primary-source and highly relevant, but it describes the wire protocol generally rather than the TypeScript SDK's registerTool surface specifically — ambiguous band."
     }
@@ -154,7 +181,10 @@
       "domain": "stackoverflow.com"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 1,
       "notes": "Community Q&A, exact API named with a concrete code migration — useful but unaffiliated commentary, not official docs."
     }
@@ -170,7 +200,10 @@
       "domain": "medium.com"
     },
     "labels": {
-      "relevance_band": [0, 1],
+      "relevance_band": [
+        0,
+        1
+      ],
       "credibility_level": 1,
       "notes": "Same general topic (building an MCP server) but the snippet itself says it skips the tool-registration API detail the goal wants."
     }
@@ -186,7 +219,10 @@
       "domain": "bestmcptools.biz"
     },
     "labels": {
-      "relevance_band": [0, 1],
+      "relevance_band": [
+        0,
+        1
+      ],
       "credibility_level": 0,
       "notes": "Listicle title, keyword-stuffed snippet, .biz aggregator domain — content-farm shape."
     }
@@ -202,7 +238,10 @@
       "domain": "aiproductivityhacks.info"
     },
     "labels": {
-      "relevance_band": [0, 0],
+      "relevance_band": [
+        0,
+        0
+      ],
       "credibility_level": 0,
       "notes": "Different topic entirely (general agent frameworks, not MCP or tool registration) served by an SEO farm domain. Clear-cut zero."
     }
@@ -218,7 +257,10 @@
       "domain": "cheatsheetseries.owasp.org"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "Standards-body-adjacent primary source, exact recommended practice named. Clear-cut."
     }
@@ -234,7 +276,10 @@
       "domain": "nodejs.org"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "First-party Node.js API docs, the exact primitive the practice is built on. Clear-cut."
     }
@@ -250,7 +295,10 @@
       "domain": "rfc-editor.org"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 2,
       "notes": "Primary standards source for the ranges an SSRF guard must exclude, but it's background reference rather than crawler-specific guidance — ambiguous band."
     }
@@ -266,7 +314,10 @@
       "domain": "blog.smallteam.dev"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 1,
       "notes": "Personal engineering blog, but a concrete first-hand account of the exact failure mode and fix — exact entity/claim present, plausibly a 2."
     }
@@ -282,7 +333,10 @@
       "domain": "security.stackexchange.com"
     },
     "labels": {
-      "relevance_band": [1, 1],
+      "relevance_band": [
+        1,
+        1
+      ],
       "credibility_level": 1,
       "notes": "Community Q&A on the same general topic, useful context but not itself a stated best-practice writeup — clear level-1."
     }
@@ -298,7 +352,10 @@
       "domain": "webdevsecuritytips.net"
     },
     "labels": {
-      "relevance_band": [0, 1],
+      "relevance_band": [
+        0,
+        1
+      ],
       "credibility_level": 0,
       "notes": "Listicle title and keyword-stuffed snippet on the general topic of Node security, no SSRF specifics — content-farm shape."
     }
@@ -314,7 +371,10 @@
       "domain": "freeapilistpro.com"
     },
     "labels": {
-      "relevance_band": [0, 0],
+      "relevance_band": [
+        0,
+        0
+      ],
       "credibility_level": 0,
       "notes": "Different topic entirely (an API directory listicle), served by an aggregator farm domain. Clear-cut zero."
     }
@@ -330,7 +390,10 @@
       "domain": "docs.searxng.org"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "First-party SearXNG docs, exact config key named. Clear-cut."
     }
@@ -346,7 +409,10 @@
       "domain": "github.com"
     },
     "labels": {
-      "relevance_band": [2, 2],
+      "relevance_band": [
+        2,
+        2
+      ],
       "credibility_level": 2,
       "notes": "Source repository, first-party, exact config detail named. Clear-cut."
     }
@@ -362,7 +428,10 @@
       "domain": "stackoverflow.com"
     },
     "labels": {
-      "relevance_band": [1, 2],
+      "relevance_band": [
+        1,
+        2
+      ],
       "credibility_level": 1,
       "notes": "Community Q&A that names the exact fix, but unaffiliated commentary rather than the docs themselves — ambiguous band."
     }
@@ -378,7 +447,10 @@
       "domain": "blog.homelabber.io"
     },
     "labels": {
-      "relevance_band": [0, 1],
+      "relevance_band": [
+        0,
+        1
+      ],
       "credibility_level": 1,
       "notes": "Same general topic (running SearXNG) but the snippet explicitly says it doesn't cover the JSON API config the goal needs."
     }
@@ -394,9 +466,1437 @@
       "domain": "privacytoolsdigest.net"
     },
     "labels": {
-      "relevance_band": [0, 1],
+      "relevance_band": [
+        0,
+        1
+      ],
       "credibility_level": 0,
       "notes": "SearXNG is only namedropped inside a ranked comparison listicle; keyword-stuffed snippet, aggregator domain."
+    }
+  },
+  {
+    "id": "vacuum-review-01",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "irobot roomba combo 10 max review",
+    "result": {
+      "title": "iRobot Roomba Combo 10 Max Review: Lab-Tested Suction and Mopping Scores",
+      "url": "https://www.rtings.com/vacuum/reviews/irobot/roomba-combo-10-max",
+      "snippet": "Our independent lab testing measured the Combo 10 Max's carpet and hardwood suction, mopping coverage, and obstacle avoidance against 200+ other robot vacuums.",
+      "domain": "www.rtings.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Independent lab-tested review naming the exact model. Clear-cut."
+    }
+  },
+  {
+    "id": "vacuum-review-02",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "wirecutter best robot vacuum mop combo",
+    "result": {
+      "title": "The Best Robot Vacuum and Mop Combo We've Tested",
+      "url": "https://www.nytimes.com/wirecutter/reviews/best-robot-vacuum-mop-combo/",
+      "snippet": "After months of testing, the iRobot Roomba Combo 10 Max is our top pick for automatic mop-and-vacuum combos, thanks to its dock-based mop washing and pad drying.",
+      "domain": "www.nytimes.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Wirecutter's independent testing names the exact model as its top pick. Clear-cut."
+    }
+  },
+  {
+    "id": "vacuum-review-03",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "consumer reports roomba combo 10 max test results",
+    "result": {
+      "title": "iRobot Roomba Combo 10 Max: Full Test Results",
+      "url": "https://www.consumerreports.org/appliances/robot-vacuums/irobot-roomba-combo-10-max-a1234567/",
+      "snippet": "Consumer Reports' independent lab scores the Combo 10 Max on cleaning performance, ease of use, mopping ability, and predicted reliability.",
+      "domain": "www.consumerreports.org"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Independent nonprofit test lab, exact model named. Clear-cut."
+    }
+  },
+  {
+    "id": "vacuum-review-04",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "irobot roomba combo 10 max official product page",
+    "result": {
+      "title": "Roomba Combo 10 Max Robot Vacuum & Mop",
+      "url": "https://www.irobot.com/en_us/roomba-combo-10-max.html",
+      "snippet": "Meet the Roomba Combo 10 Max: retractable mop pads, up to 75 days of hands-free cleaning, and AI-powered obstacle avoidance. Shop now.",
+      "domain": "www.irobot.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official manufacturer page names the exact product and is authoritative on specs, but it's a sales page rather than an independent review — the goal specifically asks for independent reviews, so whether this satisfies the ask is genuinely ambiguous."
+    }
+  },
+  {
+    "id": "vacuum-review-05",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "verge roomba combo 10 max hands-on",
+    "result": {
+      "title": "Roomba's new Combo 10 Max is its best all-in-one yet",
+      "url": "https://www.theverge.com/2026/2/irobot-roomba-combo-10-max-review",
+      "snippet": "After two weeks living with the Combo 10 Max, I can say it's the first Roomba mop-vac combo I'd actually recommend without caveats.",
+      "domain": "www.theverge.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Professional tech journalism, independent hands-on review, exact model named. Clear-cut."
+    }
+  },
+  {
+    "id": "vacuum-review-06",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "roomba combo 10 max reddit experience",
+    "result": {
+      "title": "Anyone tried the Combo 10 Max? My honest experience after 2 months",
+      "url": "https://www.reddit.com/r/Roomba/comments/1abcxyz/combo_10_max_two_months/",
+      "snippet": "Posting my real-world experience with the Combo 10 Max since most reviews I found were sponsored. TL;DR: mopping is good, obstacle avoidance still misses socks.",
+      "domain": "www.reddit.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Forum user-generated content, but a genuine first-hand account directly on the exact model — ambiguous whether unmoderated UGC counts as a 'review' for this goal."
+    }
+  },
+  {
+    "id": "vacuum-review-07",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "techdad blog roomba combo 10 max review",
+    "result": {
+      "title": "iRobot Roomba Combo 10 Max: My Full Written Review After 6 Weeks",
+      "url": "https://blog.techdadreviews.com/irobot-roomba-combo-10-max-review",
+      "snippet": "I bought the Combo 10 Max with my own money and used it daily for six weeks. Here's everything I liked and didn't, with before/after mopping photos.",
+      "domain": "blog.techdadreviews.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Independent first-hand review satisfying the ask directly, though the source is a personal blog rather than a major outlet."
+    }
+  },
+  {
+    "id": "vacuum-review-08",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "vacuum wars combo 10 max video review",
+    "result": {
+      "title": "iRobot Roomba Combo 10 Max — Full Review & Test Results",
+      "url": "https://www.youtube.com/watch?v=vw10max2026",
+      "snippet": "Vacuum Wars puts the Combo 10 Max through carpet deep-clean tests, pet hair pickup, and mop performance against its main rivals.",
+      "domain": "www.youtube.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Independent reviewer channel with hands-on testing of the exact model; video/UGC platform keeps credibility at blog tier."
+    }
+  },
+  {
+    "id": "vacuum-review-09",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "roomba combo 10 max troubleshooting support",
+    "result": {
+      "title": "Roomba Combo 10 Max Troubleshooting and Error Codes",
+      "url": "https://www.irobot.com/en_us/support/roomba-combo-10-max/troubleshooting.html",
+      "snippet": "Official support article covering common error codes, mop pad replacement, and dock cleaning cycles for the Roomba Combo 10 Max.",
+      "domain": "www.irobot.com"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 2,
+      "notes": "Official manufacturer source naming the exact model, but it's a support/troubleshooting document, not a review of any kind — near-miss on document type."
+    }
+  },
+  {
+    "id": "vacuum-review-10",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "top robot vacuums 2026 ranked",
+    "result": {
+      "title": "Top 15 Robot Vacuums You NEED in 2026 (RANKED!)",
+      "url": "http://top10homegadgets2026.info/top-15-robot-vacuums-2026",
+      "snippet": "best robot vacuums 2026 top rated robot vacuum ranked robot mop combo comparison buy robot vacuum online — Roomba Combo 10 Max lands at #3 on our list!",
+      "domain": "top10homegadgets2026.info"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Listicle title, keyword-stuffed snippet, aggregator-shaped domain — the model is only namedropped in a ranked list, not reviewed."
+    }
+  },
+  {
+    "id": "vacuum-review-11",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "roomba combo 10 max vs combo 10 buying guide",
+    "result": {
+      "title": "iRobot Roomba Combo 10 Max vs Combo 10: Which Should You Buy in 2026? (Ultimate Buying Guide)",
+      "url": "http://besthomecleaning.biz/roomba-combo-10-max-vs-combo-10-buying-guide",
+      "snippet": "roomba combo 10 max vs combo 10 comparison 2026 best robot vacuum buying guide which roomba should you buy top rated cleaning robots click to compare prices",
+      "domain": "besthomecleaning.biz"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Comparison-shopping farm content, keyword-stuffed, .biz aggregator domain — not an independent review, more of an affiliate funnel."
+    }
+  },
+  {
+    "id": "vacuum-review-12",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "in depth review roomba combo 10 max",
+    "result": {
+      "title": "In-Depth Review: Roomba Combo 10 Max (2026 Edition)",
+      "url": "http://smartvacuumreviews.click/in-depth-review-roomba-combo-10-max",
+      "snippet": "We tested the Roomba Combo 10 Max for suction power, mopping, app features, and value — our in-depth review breaks down every feature you need to know.",
+      "domain": "smartvacuumreviews.click"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 0,
+      "notes": "Reads like a genuine independent review and covers the exact model on-topic, but the .click domain and generic templated phrasing are classic content-farm tells — deliberately convincing near-miss."
+    }
+  },
+  {
+    "id": "vacuum-review-13",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "amazon roomba combo 10 max customer reviews",
+    "result": {
+      "title": "iRobot Roomba Combo 10 Max Robot Vacuum and Mop",
+      "url": "https://www.amazon.com/iRobot-Roomba-Combo-10-Max/dp/B0ABC12345",
+      "snippet": "4.3 out of 5 stars, 1,842 ratings. Customers say: mopping works well on hard floors, a few report the app losing connection intermittently.",
+      "domain": "www.amazon.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Aggregated customer-review star rating and comments on the exact product, but it's a retail listing rather than an editorial or first-hand independent review — ambiguous."
+    }
+  },
+  {
+    "id": "vacuum-review-14",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "rtings roomba combo j9 plus review",
+    "result": {
+      "title": "iRobot Roomba Combo j9+ Review",
+      "url": "https://www.rtings.com/vacuum/reviews/irobot/roomba-combo-j9-plus",
+      "snippet": "Our independent lab testing of the Combo j9+, iRobot's previous-generation mop-and-vacuum combo, covering suction, mopping, and app control.",
+      "domain": "www.rtings.com"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 2,
+      "notes": "Same trusted independent lab, but this reviews the prior-generation Combo j9+, not the Combo 10 Max the goal names — right brand and product line, wrong exact entity."
+    }
+  },
+  {
+    "id": "vacuum-review-15",
+    "goal": "find independent reviews of the iRobot Roomba Combo 10 Max robot vacuum",
+    "query": "how to choose a robot vacuum 2026",
+    "result": {
+      "title": "How to Choose a Robot Vacuum in 2026: A Buyer's Guide",
+      "url": "https://generalvacuumbuyingguide.org/how-to-choose-a-robot-vacuum-2026",
+      "snippet": "General buying advice covering suction ratings, navigation types, and battery life to consider when shopping for any robot vacuum.",
+      "domain": "generalvacuumbuyingguide.org"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 1,
+      "notes": "Generic buying-guide content that never mentions the Combo 10 Max at all — different topic entirely."
+    }
+  },
+  {
+    "id": "iron-deficiency-01",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "nhs iron deficiency anaemia symptoms",
+    "result": {
+      "title": "Iron deficiency anaemia - Symptoms",
+      "url": "https://www.nhs.uk/conditions/iron-deficiency-anaemia/symptoms/",
+      "snippet": "NHS guidance on the symptoms of iron deficiency anaemia in adults, including tiredness, shortness of breath, pale skin, and heart palpitations, and when to see a GP.",
+      "domain": "www.nhs.uk"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official national health service guidance, directly on adult iron-deficiency symptoms. Clear-cut."
+    }
+  },
+  {
+    "id": "iron-deficiency-02",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "mayo clinic iron deficiency anemia symptoms causes",
+    "result": {
+      "title": "Iron deficiency anemia - Symptoms and causes",
+      "url": "https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034",
+      "snippet": "Mayo Clinic overview of iron deficiency anemia symptoms in adults — extreme fatigue, pale skin, chest pain, brittle nails — and the causes behind them.",
+      "domain": "www.mayoclinic.org"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Major academic medical center's patient guidance, directly on-topic. Clear-cut."
+    }
+  },
+  {
+    "id": "iron-deficiency-03",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "nih ods iron fact sheet health professional",
+    "result": {
+      "title": "Iron - Health Professional Fact Sheet",
+      "url": "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/",
+      "snippet": "NIH Office of Dietary Supplements fact sheet on iron, including deficiency symptoms, at-risk groups, and recommended intakes for adults.",
+      "domain": "ods.od.nih.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official U.S. government health agency fact sheet, directly on-topic. Clear-cut."
+    }
+  },
+  {
+    "id": "iron-deficiency-04",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "cdc iron deficiency information",
+    "result": {
+      "title": "Iron and Iron Deficiency",
+      "url": "https://www.cdc.gov/nutrition/iron/index.html",
+      "snippet": "CDC overview of iron deficiency, who is at risk, common symptoms in adults such as fatigue and weakness, and how it's diagnosed.",
+      "domain": "www.cdc.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official public health agency guidance, directly on-topic. Clear-cut."
+    }
+  },
+  {
+    "id": "iron-deficiency-05",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "nhs anaemia in children symptoms",
+    "result": {
+      "title": "Anaemia in children",
+      "url": "https://www.nhs.uk/conditions/anaemia-in-children/",
+      "snippet": "NHS guidance on recognizing anaemia in children, including iron-deficiency anaemia symptoms specific to infants and toddlers.",
+      "domain": "www.nhs.uk"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 2,
+      "notes": "Same official NHS domain and general condition, but this page is specifically about children, not the adult symptoms the goal asks for — near-miss on population."
+    }
+  },
+  {
+    "id": "iron-deficiency-06",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "iron deficiency endurance athletes review journal",
+    "result": {
+      "title": "Iron deficiency in endurance athletes: a review",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38765432/",
+      "snippet": "Peer-reviewed review summarizing the prevalence, symptoms, and screening recommendations for iron deficiency among adult endurance athletes.",
+      "domain": "pubmed.ncbi.nlm.nih.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Peer-reviewed primary literature squarely on adult iron-deficiency symptoms, but scoped to endurance athletes specifically rather than general adult guidance — genuinely ambiguous whether that narrows it below the goal's ask."
+    }
+  },
+  {
+    "id": "iron-deficiency-07",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "signs of low iron verywellhealth",
+    "result": {
+      "title": "11 Signs You Might Have Low Iron",
+      "url": "https://www.verywellhealth.com/signs-of-low-iron-5088123",
+      "snippet": "Medically reviewed list of common low-iron symptoms in adults, from fatigue and brittle nails to restless legs and cravings for ice.",
+      "domain": "www.verywellhealth.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Consumer health site with medical review, directly answers the ask; treated as secondary/aggregator tier rather than a primary clinical source."
+    }
+  },
+  {
+    "id": "iron-deficiency-08",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "reddit askdocs tired could this be iron deficiency",
+    "result": {
+      "title": "Constantly tired, could this be iron deficiency?",
+      "url": "https://www.reddit.com/r/AskDocs/comments/1cdefgh/constantly_tired_iron_deficiency/",
+      "snippet": "34F here, exhausted for months despite sleeping 8 hours. A commenting physician suggests getting ferritin checked given the symptom pattern described.",
+      "domain": "www.reddit.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "On-topic forum discussion with a physician commenter, but it's a single anecdotal Q&A thread rather than a guidance write-up — ambiguous."
+    }
+  },
+  {
+    "id": "iron-deficiency-09",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "patient.info forum low iron symptoms",
+    "result": {
+      "title": "Low iron symptoms - anyone else experience this?",
+      "url": "https://patient.info/forums/discuss/low-iron-symptoms-anyone-else-experience-this-812345",
+      "snippet": "Community forum thread where patients compare notes on fatigue, hair loss, and dizziness they attributed to low iron levels.",
+      "domain": "patient.info"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        1
+      ],
+      "credibility_level": 1,
+      "notes": "Patient community discussion on the general topic, useful context but not itself a guidance write-up — clear level-1."
+    }
+  },
+  {
+    "id": "iron-deficiency-10",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "my iron deficiency journey blog",
+    "result": {
+      "title": "My Iron Deficiency Journey: What I Wish I'd Known",
+      "url": "https://drfeelgoodwellness.blog/my-iron-deficiency-journey",
+      "snippet": "A personal wellness blogger recounts the fatigue, brain fog, and hair thinning that led to her iron deficiency diagnosis, and what helped.",
+      "domain": "drfeelgoodwellness.blog"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "First-hand personal account covering real symptoms, but anecdote-driven rather than structured guidance — ambiguous whether it counts as 'reputable guidance.'"
+    }
+  },
+  {
+    "id": "iron-deficiency-11",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "shocking signs iron deficient doctors dont want you to know",
+    "result": {
+      "title": "10 SHOCKING Signs You're Iron Deficient (Doctors Don't Want You to Know)",
+      "url": "http://supplementsdaily.info/10-shocking-signs-iron-deficient",
+      "snippet": "iron deficiency signs 2026 shocking symptoms doctors hide low iron warning signs best iron supplements ranked buy now limited time offer",
+      "domain": "supplementsdaily.info"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Clickbait title, keyword-stuffed snippet, and a supplement sales pitch — content-farm shape despite touching the right general topic."
+    }
+  },
+  {
+    "id": "iron-deficiency-12",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "vitamin deficiencies ranked most dangerous",
+    "result": {
+      "title": "Top 12 Vitamin Deficiencies Ranked by How Dangerous They Are",
+      "url": "http://healthhacksdigest.click/top-12-vitamin-deficiencies-ranked",
+      "snippet": "vitamin deficiencies ranked 2026 most dangerous nutrient deficiencies list vitamin d b12 iron deficiency symptoms comparison health hacks you need",
+      "domain": "healthhacksdigest.click"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Iron deficiency is only namedropped at #4 in a broader ranked listicle; keyword-stuffed, aggregator-shaped domain."
+    }
+  },
+  {
+    "id": "iron-deficiency-13",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "iron deficiency symptoms adults low iron signs anemia causes treatment",
+    "result": {
+      "title": "Iron Deficiency Symptoms Adults: Low Iron Signs, Anemia Causes & Treatment Guide",
+      "url": "http://besthealthtips2026.biz/iron-deficiency-symptoms-adults-guide",
+      "snippet": "iron deficiency symptoms adults low iron signs anemia symptoms fatigue causes treatment options best supplements 2026 updated guide read more",
+      "domain": "besthealthtips2026.biz"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 0,
+      "notes": "Heavily keyword-stuffed farm domain, but the stuffed keywords happen to match the exact ask closely — a deliberately convincing farm near-miss."
+    }
+  },
+  {
+    "id": "iron-deficiency-14",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "webmd iron deficiency anemia symptoms causes treatment",
+    "result": {
+      "title": "Iron Deficiency Anemia: Symptoms, Causes, Treatment",
+      "url": "https://www.webmd.com/a-to-z-guides/understanding-iron-deficiency-anemia-symptoms",
+      "snippet": "WebMD's medically reviewed overview of iron deficiency anemia symptoms in adults, from fatigue and pale skin to unusual cravings for non-food items.",
+      "domain": "www.webmd.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Major consumer health portal, editorially and medically reviewed, directly satisfies the ask; treated as secondary/aggregator tier rather than a primary clinical or government source."
+    }
+  },
+  {
+    "id": "iron-deficiency-15",
+    "goal": "find reputable guidance on adult iron-deficiency symptoms",
+    "query": "best foods for energy 2026",
+    "result": {
+      "title": "Best Foods for Energy in 2026",
+      "url": "https://nutritiontrends2026.net/best-foods-for-energy-2026",
+      "snippet": "A roundup of energy-boosting foods to add to your diet, from leafy greens to lean protein, for anyone feeling sluggish.",
+      "domain": "nutritiontrends2026.net"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 0,
+      "notes": "General diet/energy content that never addresses iron deficiency specifically — different topic entirely."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-01",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "european commission press release ai act delay 2026",
+    "result": {
+      "title": "Commission proposes 16-month delay to AI Act high-risk obligations",
+      "url": "https://ec.europa.eu/commission/presscorner/detail/en/ip_26_1234",
+      "snippet": "Official press release: the Commission has proposed delaying the AI Act's high-risk system obligations by 16 months to give providers more time to prepare conformity assessments.",
+      "domain": "ec.europa.eu"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official European Commission press release stating the exact delay. Clear-cut."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-02",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "eur-lex amending regulation ai act high-risk obligations effective date",
+    "result": {
+      "title": "Regulation amending Regulation (EU) 2024/1689 as regards application dates for high-risk AI systems",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R0456",
+      "snippet": "Official Union legislation text amending the AI Act's application dates, setting the new effective date for high-risk system obligations.",
+      "domain": "eur-lex.europa.eu"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official published legal text with the effective date. Clear-cut."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-03",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "reuters eu delays ai act high risk rules",
+    "result": {
+      "title": "EU delays AI Act high-risk rules by 16 months",
+      "url": "https://www.reuters.com/technology/eu-delays-ai-act-high-risk-rules-2026-01-15/",
+      "snippet": "The European Union will delay enforcement of its AI Act's high-risk system requirements by 16 months, the European Commission said on Thursday.",
+      "domain": "www.reuters.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Primary wire-service reporting on the exact delay, sourced to the Commission. Clear-cut."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-04",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "ap news eu ai act delay officials",
+    "result": {
+      "title": "EU pushes back AI rules for high-risk systems after industry pressure",
+      "url": "https://apnews.com/article/eu-ai-act-delay-high-risk-2026-abc123",
+      "snippet": "European Union officials confirmed a 16-month delay to AI Act obligations for high-risk systems, following lobbying from automakers and healthcare firms.",
+      "domain": "apnews.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Primary wire-service reporting quoting officials directly. Clear-cut."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-05",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "ec europa eu ai act gpai code of practice",
+    "result": {
+      "title": "AI Act: Code of Practice for General-Purpose AI Models",
+      "url": "https://ec.europa.eu/digital-strategy/ai-act-gpai-code-of-practice_en",
+      "snippet": "Official Commission page on the voluntary Code of Practice for providers of general-purpose AI models under the AI Act.",
+      "domain": "ec.europa.eu"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 2,
+      "notes": "Official EU source on the AI Act, but covers the general-purpose-AI code of practice, a different provision entirely from the high-risk-system obligations delay the goal asks about — near-miss on the specific policy."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-06",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "politico eu ai act delay brussels playbook",
+    "result": {
+      "title": "Brussels Playbook: Inside the AI Act delay decision",
+      "url": "https://www.politico.eu/newsletter/brussels-playbook/inside-the-ai-act-delay-decision/",
+      "snippet": "Politico's Brussels Playbook newsletter breaks down the internal Commission debate that led to the 16-month delay, citing three unnamed officials.",
+      "domain": "www.politico.eu"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Well-sourced insider reporting naming the exact policy, but framed as a newsletter/analysis product rather than straight wire reporting — ambiguous whether it counts as 'primary reporting.'"
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-07",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "euractiv opinion ai act delay mistake",
+    "result": {
+      "title": "Why the AI Act delay is a mistake",
+      "url": "https://www.euractiv.com/section/digital/opinion/why-the-ai-act-delay-is-a-mistake/",
+      "snippet": "Opinion: delaying high-risk AI obligations sends the wrong signal to industry just as enforcement capacity was finally coming online, argues our columnist.",
+      "domain": "www.euractiv.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Opinion column discussing the exact policy in depth, but it's argumentative commentary rather than neutral reporting of the primary facts."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-08",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "ai policy watch substack newsletter delay analysis",
+    "result": {
+      "title": "The AI Act delay, explained: what actually changed and when",
+      "url": "https://aipolicywatch.substack.com/p/ai-act-delay-explained",
+      "snippet": "A close read of the Commission's amending regulation, walking through exactly which obligations are delayed, to what date, and why.",
+      "domain": "aipolicywatch.substack.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Independent policy newsletter, but it directly and accurately covers the exact delay and cites the primary text — satisfies the ask despite blog-tier credibility."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-09",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "reddit r europe ai act delay reaction",
+    "result": {
+      "title": "EU just delayed the AI Act's high-risk rules by over a year",
+      "url": "https://www.reddit.com/r/europe/comments/1defghi/eu_ai_act_delay_reaction/",
+      "snippet": "Thread reacting to news of the delay, with users debating whether it favors big tech or just reflects implementation reality.",
+      "domain": "www.reddit.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        1
+      ],
+      "credibility_level": 1,
+      "notes": "Discussion reacting to the news, not itself reporting — clear level-1."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-10",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "linkedin post ai act delay summary compliance",
+    "result": {
+      "title": "What the AI Act delay means for your compliance timeline",
+      "url": "https://www.linkedin.com/pulse/what-ai-act-delay-means-your-compliance-timeline-consultant",
+      "snippet": "A compliance consultant's LinkedIn post summarizing the 16-month delay for clients, based on the Official Journal notice.",
+      "domain": "www.linkedin.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Secondhand summary of the primary announcement aimed at clients; accurate but derivative — ambiguous whether a paraphrase satisfies 'primary reporting.'"
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-11",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "techcrunch eu delays ai act high risk systems",
+    "result": {
+      "title": "EU delays AI Act's toughest rules as companies plead for more time",
+      "url": "https://techcrunch.com/2026/01/15/eu-delays-ai-act-high-risk-rules/",
+      "snippet": "TechCrunch reports the European Commission has formally delayed high-risk AI system obligations by 16 months following sustained industry lobbying.",
+      "domain": "techcrunch.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Reputable tech-press reporting directly on the exact delay, sourced to the Commission. Clear-cut."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-12",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "top ai laws changing 2026",
+    "result": {
+      "title": "Top 10 AI Laws Changing in 2026 (You Won't Believe #3)",
+      "url": "http://airegulationdaily.click/top-10-ai-laws-changing-2026",
+      "snippet": "ai laws 2026 top ai regulations ranked ai act changes eu us china ai law comparison best ai compliance tools click here",
+      "domain": "airegulationdaily.click"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Listicle title, keyword-stuffed snippet, .click aggregator domain — the delay is only namedropped in a ranked list."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-13",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "eu delays ai act rules rewritten",
+    "result": {
+      "title": "EU Delays AI Act High-Risk Rules By 16 Months",
+      "url": "http://globaltechnewsnow.info/eu-delays-ai-act-high-risk-rules-16-months",
+      "snippet": "eu delays ai act high risk rules 16 months european commission announcement industry reaction read the full story here breaking tech news",
+      "domain": "globaltechnewsnow.info"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 0,
+      "notes": "Substantively on the exact topic — looks like a rewritten/scraped version of a wire story — but the aggregator-farm domain and generic phrasing make it an unreliable source. Convincing near-miss."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-14",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "ai act compliance software vendor blog delay",
+    "result": {
+      "title": "Big News: AI Act High-Risk Deadlines Just Got Pushed Back",
+      "url": "https://aicompliancehub.net/blog/ai-act-high-risk-deadlines-pushed-back",
+      "snippet": "Great news for compliance teams — the AI Act's high-risk deadlines have moved. See how AIComplianceHub's platform keeps you audit-ready either way.",
+      "domain": "aicompliancehub.net"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Vendor marketing blog using the delay as a sales hook; genuinely mentions the right policy but is not a reporting source."
+    }
+  },
+  {
+    "id": "eu-ai-act-delay-15",
+    "goal": "find primary reporting on the EU's 2026 delay to AI Act high-risk-system obligations",
+    "query": "eu ai act 2026 changes explained everything you need to know",
+    "result": {
+      "title": "EU AI Act 2026 Changes Explained: Everything You Need to Know",
+      "url": "http://eutechlawupdates.click/eu-ai-act-2026-changes-explained",
+      "snippet": "eu ai act 2026 changes explained everything you need to know ai regulation update guide read our full breakdown of what's new",
+      "domain": "eutechlawupdates.click"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Generic keyword-stuffed rehash of 'AI Act changes' without stating the specific high-risk delay clearly — farm-shaped and only loosely on-topic."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-01",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "federal register ftc negative option rule final amendment",
+    "result": {
+      "title": "Negative Option Rule; Final Rule",
+      "url": "https://www.federalregister.gov/documents/2026/01/10/2026-00456/negative-option-rule",
+      "snippet": "Official Federal Register publication of the FTC's final amended Negative Option Rule, including the compliance date and full regulatory text.",
+      "domain": "www.federalregister.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official Federal Register publication with the exact text and effective date. Clear-cut."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-02",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "ftc press release click to cancel rule effective date",
+    "result": {
+      "title": "FTC Announces Final Click-to-Cancel Rule, Sets Compliance Date",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2026/01/ftc-announces-final-click-cancel-rule",
+      "snippet": "The Federal Trade Commission today announced the amended Negative Option Rule, commonly known as the Click-to-Cancel Rule, takes effect later this year.",
+      "domain": "www.ftc.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official FTC press release stating the rule and its effective date. Clear-cut."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-03",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "ecfr 16 cfr part 425 negative option",
+    "result": {
+      "title": "16 CFR Part 425 — Use of Negative Option Plans",
+      "url": "https://www.ecfr.gov/current/title-16/chapter-I/subchapter-D/part-425",
+      "snippet": "The current, official codified text of the Negative Option Rule as amended, covering disclosure, consent, and cancellation requirements.",
+      "domain": "www.ecfr.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official codified regulatory text itself. Clear-cut."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-04",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "ftc business guidance click to cancel compliance blog",
+    "result": {
+      "title": "Complying with the Negative Option Rule: A Guide for Business",
+      "url": "https://www.ftc.gov/business-guidance/resources/complying-negative-option-rule-guide-business",
+      "snippet": "FTC staff guidance summarizing obligations under the amended rule, with practical compliance tips for subscription businesses.",
+      "domain": "www.ftc.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official FTC source, but a compliance-guidance summary rather than the rule text and effective date themselves — near-miss on document type."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-05",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "federal register telemarketing sales rule amendments 2026",
+    "result": {
+      "title": "Telemarketing Sales Rule; Amendments",
+      "url": "https://www.federalregister.gov/documents/2026/02/03/2026-00789/telemarketing-sales-rule-amendments",
+      "snippet": "Official Federal Register publication of amendments to the Telemarketing Sales Rule regarding robocall consent requirements.",
+      "domain": "www.federalregister.gov"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 2,
+      "notes": "Official, primary Federal Register source, but for an entirely different FTC rule (telemarketing, not the Negative Option/Click-to-Cancel Rule) — off-topic despite the source type matching."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-06",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "national law review click to cancel rule effective date client alert",
+    "result": {
+      "title": "FTC's Click-to-Cancel Rule: What Businesses Need to Know Before the Effective Date",
+      "url": "https://www.natlawreview.com/article/ftcs-click-cancel-rule-what-businesses-need-know-effective-date",
+      "snippet": "Law firm client alert summarizing the amended Negative Option Rule's requirements and stating its compliance deadline.",
+      "domain": "www.natlawreview.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Secondary legal-commentary source, but accurately and directly states the rule and its effective date — satisfies the ask despite lower credibility tier."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-07",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "jd supra subscription law trends 2026 click to cancel",
+    "result": {
+      "title": "Subscription Law Trends to Watch in 2026",
+      "url": "https://www.jdsupra.com/legalnews/subscription-law-trends-to-watch-2026-1234567/",
+      "snippet": "A roundup of state and federal subscription-cancellation law developments, including a section on the FTC's amended Negative Option Rule.",
+      "domain": "www.jdsupra.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Covers the exact rule as one section of a broader trends roundup rather than a focused statement of its text/effective date — ambiguous."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-08",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "reddit legaladvice is click to cancel rule in effect yet",
+    "result": {
+      "title": "Is the FTC click-to-cancel rule actually in effect yet?",
+      "url": "https://www.reddit.com/r/legaladvice/comments/1ghijkl/click_to_cancel_rule_in_effect/",
+      "snippet": "Confused about conflicting articles — has the FTC's negative option rule actually taken effect or is it still being litigated?",
+      "domain": "www.reddit.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        1
+      ],
+      "credibility_level": 1,
+      "notes": "Forum discussion asking about the topic, not itself an authoritative statement — clear level-1."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-09",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "ftc compliance guide click to cancel checklist",
+    "result": {
+      "title": "FTC Click-to-Cancel Compliance Guide: Effective Date & Checklist",
+      "url": "https://ftccomplianceguide.com/click-to-cancel-effective-date-checklist",
+      "snippet": "Everything your subscription business needs to know about the Click-to-Cancel effective date, plus our downloadable compliance checklist.",
+      "domain": "ftccomplianceguide.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 0,
+      "notes": "Domain and branding are styled to look official/FTC-affiliated but this is an unaffiliated private compliance-training vendor selling a checklist — a deliberately deceptive official-adjacent near-miss."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-10",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "consumer finance monitor ftc junk fees rule blog",
+    "result": {
+      "title": "FTC Ramps Up Enforcement Against Junk Fees",
+      "url": "https://www.consumerfinancemonitor.com/2026/01/20/ftc-ramps-up-enforcement-against-junk-fees/",
+      "snippet": "Law firm blog covering the FTC's recent junk-fees enforcement actions and proposed rulemaking in that separate area.",
+      "domain": "www.consumerfinancemonitor.com"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 1,
+      "notes": "Same broad FTC-consumer-protection beat, but this post is about a different rule (junk fees), not the Negative Option/Click-to-Cancel Rule — off-topic."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-11",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "linkedin compliance officer summary federal register negative option rule",
+    "result": {
+      "title": "What changed: the FTC's amended Negative Option Rule",
+      "url": "https://www.linkedin.com/pulse/what-changed-ftcs-amended-negative-option-rule-compliance-officer",
+      "snippet": "Quick summary for my network: the Federal Register notice is out, here's the compliance date and what's different from the proposed version.",
+      "domain": "www.linkedin.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Accurate secondhand summary citing the Federal Register notice, but a paraphrase rather than the primary text/date itself — ambiguous."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-12",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "new business regulations 2026 dont get fined",
+    "result": {
+      "title": "Top 10 New Business Regulations Hitting in 2026 (Don't Get Fined!)",
+      "url": "http://regulationwatchdaily.click/top-10-new-business-regulations-2026",
+      "snippet": "business regulations 2026 top rules to watch dont get fined compliance checklist ftc rules fda rules osha rules ranked click here",
+      "domain": "regulationwatchdaily.click"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Listicle namedropping the FTC rule at #5 among unrelated regulations; keyword-stuffed, aggregator-farm domain."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-13",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "ftc click to cancel rule 2026 effective date subscription cancellation law negative option rule changes",
+    "result": {
+      "title": "FTC Click to Cancel Rule 2026: Effective Date & Subscription Cancellation Law Changes",
+      "url": "http://consumerlawupdates.info/ftc-click-to-cancel-rule-2026-effective-date",
+      "snippet": "ftc click to cancel rule 2026 effective date subscription cancellation law negative option rule changes everything you need to know read more",
+      "domain": "consumerlawupdates.info"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 0,
+      "notes": "Keyword-stuffed farm domain, but the stuffed keywords are precisely on-topic — a deliberately convincing farm near-miss."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-14",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "ftc rules every small business must know 2026 checklist",
+    "result": {
+      "title": "FTC Rules Every Small Business Must Know (2026 Checklist)",
+      "url": "http://bizregulationhub.biz/ftc-rules-every-small-business-must-know-2026",
+      "snippet": "ftc rules 2026 small business checklist compliance guide click to cancel junk fees rule endorsement guides all in one place",
+      "domain": "bizregulationhub.biz"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Click-to-Cancel is one bullet among many unrelated FTC rules in a generic aggregator checklist — thin, farm-shaped coverage."
+    }
+  },
+  {
+    "id": "ftc-negopt-rule-15",
+    "goal": "find the official text and effective date of the FTC's 2026 amendments to the Negative Option Rule (Click-to-Cancel)",
+    "query": "courtlistener negative option rule litigation eighth circuit",
+    "result": {
+      "title": "Petition for Review — Negative Option Rule Litigation (8th Cir.)",
+      "url": "https://www.courtlistener.com/docket/67891234/negative-option-rule-challenge/",
+      "snippet": "Docket for the pending Eighth Circuit petition challenging the FTC's amended Negative Option Rule, including filed briefs and the current case schedule.",
+      "domain": "www.courtlistener.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Primary, official court record directly about the rule, but it documents litigation status rather than the rule's text and effective date — adjacent document type, genuinely ambiguous."
+    }
+  },
+  {
+    "id": "japan-visa-01",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "mofa japan visa requirements indian nationals",
+    "result": {
+      "title": "Visa Requirements for Indian Nationals",
+      "url": "https://www.mofa.go.jp/j_info/visit/visa/1-2.html",
+      "snippet": "Official Ministry of Foreign Affairs of Japan guidance on visa categories, required documents, and application procedures for Indian passport holders.",
+      "domain": "www.mofa.go.jp"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official Japanese government source naming the exact nationality and requirement. Clear-cut."
+    }
+  },
+  {
+    "id": "japan-visa-02",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "embassy of japan india visa application requirements",
+    "result": {
+      "title": "Visa Application Guide for Indian Nationals",
+      "url": "https://www.in.emb-japan.go.jp/itpr_en/visa_application.html",
+      "snippet": "Embassy of Japan in India's official page listing required documents, processing times, and application centers for tourist and business visas.",
+      "domain": "www.in.emb-japan.go.jp"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official Japanese embassy source specifically for Indian applicants. Clear-cut."
+    }
+  },
+  {
+    "id": "japan-visa-03",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "mofa japan visa requirements chinese nationals",
+    "result": {
+      "title": "Visa Requirements for Chinese Nationals",
+      "url": "https://www.mofa.go.jp/j_info/visit/visa/1-5.html",
+      "snippet": "Official Ministry of Foreign Affairs of Japan guidance on visa categories and required documents for Chinese passport holders.",
+      "domain": "www.mofa.go.jp"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 2,
+      "notes": "Same official domain and general visa topic, but for Chinese nationals, not Indian — wrong nationality entirely despite the official source."
+    }
+  },
+  {
+    "id": "japan-visa-04",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "jnto planning your trip to japan visas",
+    "result": {
+      "title": "Planning Your Trip to Japan: Visas and Entry Requirements",
+      "url": "https://www.jnto.go.jp/en/plan/visas/",
+      "snippet": "General trip-planning overview from the Japan National Tourism Organization touching on visa-free stays and pointing travelers to embassy sites for details.",
+      "domain": "www.jnto.go.jp"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 2,
+      "notes": "Official, quasi-governmental tourism body covering Japan entry generally, but it's a broad trip-planning guide that defers elsewhere for actual visa rules rather than stating them — near-miss on document type."
+    }
+  },
+  {
+    "id": "japan-visa-05",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "mea india outbound travel advisory japan",
+    "result": {
+      "title": "Travel Advisory: Outbound Travel to Japan",
+      "url": "https://www.mea.gov.in/travel-advisories/japan.htm",
+      "snippet": "Ministry of External Affairs advisory for Indian citizens traveling to Japan, covering visa reciprocity notes and consular contact information.",
+      "domain": "www.mea.gov.in"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 2,
+      "notes": "Official government source, but issued by India (the departure country) rather than Japan (the destination whose visa rules are being asked about), and framed as a general advisory rather than the requirements list itself — ambiguous."
+    }
+  },
+  {
+    "id": "japan-visa-06",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "vfs global japan visa india required documents",
+    "result": {
+      "title": "Japan Visa Application — Required Documents",
+      "url": "https://visa.vfsglobal.com/ind/en/jpn/apply-visa",
+      "snippet": "VFS Global, the Japan embassy's designated outsourcing partner in India, lists required documents, fees, and appointment booking for Japan visas.",
+      "domain": "visa.vfsglobal.com"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "The officially designated application channel for Indian applicants and directly on-topic, but VFS Global is a private contractor rather than a government body — credibility kept at the blog/commercial tier despite functioning as the authorized channel."
+    }
+  },
+  {
+    "id": "japan-visa-07",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "tripadvisor forum japan visa from india documents needed",
+    "result": {
+      "title": "Applying for Japan visa from India - documents needed?",
+      "url": "https://www.tripadvisor.com/ShowTopic-g294232-i525-k12345678-Japan_visa_from_India.html",
+      "snippet": "Forum thread where travelers share which documents they submitted and how long processing took for their Japan tourist visas from India.",
+      "domain": "www.tripadvisor.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "On-topic UGC forum thread with practical detail, but crowd-sourced and unofficial — ambiguous whether it counts as stating the requirements."
+    }
+  },
+  {
+    "id": "japan-visa-08",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "nomadic girl blog japan visa indian passport",
+    "result": {
+      "title": "How I Got My Japan Tourist Visa as an Indian Passport Holder",
+      "url": "https://nomadicgirl.blog/japan-visa-indian-passport-guide",
+      "snippet": "Step-by-step account of the documents I submitted, the VFS appointment process, and how long approval took for my Japan tourist visa.",
+      "domain": "nomadicgirl.blog"
+    },
+    "labels": {
+      "relevance_band": [
+        2,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "First-hand, accurate account of the exact process for the exact nationality — satisfies the ask despite personal-blog credibility tier."
+    }
+  },
+  {
+    "id": "japan-visa-09",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "reddit india travel japan visa wait times rejections",
+    "result": {
+      "title": "Japan visa wait times and rejection experiences from India",
+      "url": "https://www.reddit.com/r/IndiaTravel/comments/1mnopqr/japan_visa_wait_times/",
+      "snippet": "Thread comparing how long people waited and why some applications got rejected when applying for Japan visas from India.",
+      "domain": "www.reddit.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        1
+      ],
+      "credibility_level": 1,
+      "notes": "Discussion of experiences, not a statement of the requirements themselves — clear level-1."
+    }
+  },
+  {
+    "id": "japan-visa-10",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "quora documents needed japan tourist visa indian citizen",
+    "result": {
+      "title": "What documents do I need for a Japan tourist visa as an Indian citizen?",
+      "url": "https://www.quora.com/What-documents-do-I-need-for-a-Japan-tourist-visa-as-an-Indian-citizen",
+      "snippet": "Answer from a self-described former travel agent listing the documents typically required, with a caveat to double-check current embassy rules.",
+      "domain": "www.quora.com"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 1,
+      "notes": "Plausible and on-topic, but an unverifiable individual answer rather than an authoritative statement — ambiguous."
+    }
+  },
+  {
+    "id": "japan-visa-11",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "japan visa for indians 2026 guaranteed approval",
+    "result": {
+      "title": "Japan Visa for Indians 2026 - GUARANTEED APPROVAL - Apply Now!",
+      "url": "http://easyjapanvisa2026.click/japan-visa-indians-guaranteed-approval",
+      "snippet": "japan visa indian nationals 2026 apply now guaranteed approval fast processing no rejection visa assistance service book today",
+      "domain": "easyjapanvisa2026.click"
+    },
+    "labels": {
+      "relevance_band": [
+        1,
+        2
+      ],
+      "credibility_level": 0,
+      "notes": "On-topic keywords wrapped around a scammy paid 'guaranteed approval' pitch — a deliberately convincing but untrustworthy farm/service site."
+    }
+  },
+  {
+    "id": "japan-visa-12",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "visa requirements top 10 asian destinations 2026",
+    "result": {
+      "title": "Visa Requirements for the Top 10 Asian Destinations (2026 Guide)",
+      "url": "http://top10travelvisaguides.net/visa-requirements-top-10-asian-destinations-2026",
+      "snippet": "visa requirements 2026 top asian destinations guide japan thailand vietnam singapore visa rules compared best travel tips",
+      "domain": "top10travelvisaguides.net"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Generic multi-country listicle with only a thin, generic Japan section — farm-shaped, not nationality-specific."
+    }
+  },
+  {
+    "id": "japan-visa-13",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "cheap flights tokyo deals dont forget visa",
+    "result": {
+      "title": "50% Off Flights to Tokyo This Month!",
+      "url": "http://cheapflightsdaily.biz/50-percent-off-flights-tokyo",
+      "snippet": "Grab these flash flight deals to Tokyo before they're gone — oh, and don't forget your visa if you need one!",
+      "domain": "cheapflightsdaily.biz"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 0,
+      "notes": "Flight-deals farm post with a throwaway visa mention — different topic entirely."
+    }
+  },
+  {
+    "id": "japan-visa-14",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "mofa japan customs import regulations entering japan",
+    "result": {
+      "title": "Customs and Import Regulations for Entering Japan",
+      "url": "https://www.mofa.go.jp/j_info/visit/customs/index.html",
+      "snippet": "Official guidance on duty-free allowances, prohibited items, and customs declaration procedures for travelers entering Japan.",
+      "domain": "www.mofa.go.jp"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        0
+      ],
+      "credibility_level": 2,
+      "notes": "Same official Japanese government domain and general travel-to-Japan topic, but about customs/import rules, not visas — wrong topic despite the primary source."
+    }
+  },
+  {
+    "id": "japan-visa-15",
+    "goal": "find the official visa requirements for Indian nationals visiting Japan",
+    "query": "visa guru 2026 japan visa guide all nationalities",
+    "result": {
+      "title": "Japan Visa Guide for All Nationalities (Updated 2026)",
+      "url": "http://visaguru2026.info/japan-visa-guide-all-nationalities-2026",
+      "snippet": "japan visa guide 2026 all nationalities requirements updated visa free countries japan entry rules comprehensive list check now",
+      "domain": "visaguru2026.info"
+    },
+    "labels": {
+      "relevance_band": [
+        0,
+        1
+      ],
+      "credibility_level": 0,
+      "notes": "Generic multi-nationality farm guide that doesn't specifically address Indian applicants' requirements — thin, keyword-stuffed coverage."
     }
   }
 ]

@@ -61,7 +61,30 @@ Then restart the container so the config takes effect:
 docker restart searxng
 ```
 
-**2. Install dependencies:**
+**2. Install jev-scout** — one command:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/kierandotai/jev-scout/main/scripts/install.sh | bash
+```
+
+Or, to review the script before running it (safer):
+
+```sh
+git clone https://github.com/kierandotai/jev-scout.git
+bash jev-scout/scripts/install.sh
+```
+
+Either way, [`scripts/install.sh`](scripts/install.sh) clones/updates the
+`jev-client` sibling dependency and builds it, runs `npm install` in
+jev-scout, registers the MCP server with the Claude Code CLI
+(`claude mcp add ...`) if `claude` is on `PATH` — printing the exact command
+to run yourself otherwise — and creates `.env` from `.env.example` if it
+doesn't exist yet, printing blocked-on-key guidance if no Jev key is set
+(see [Jev access](#jev-access) below). It's idempotent — safe to re-run any
+time, e.g. after a `git pull`.
+
+<details>
+<summary>Manual steps (equivalent to what install.sh does)</summary>
 
 ```sh
 # jev-scout consumes jev-client as a file: dependency — clone them side by side
@@ -71,17 +94,23 @@ cd jev-client && npm install && npm run build && cd ../jev-scout
 npm install
 ```
 
-**3. Register the MCP server with Claude Code** (replace `/ABS/PATH` with
-this repo's absolute path):
+Register the MCP server with Claude Code (replace `/ABS/PATH` with this
+repo's absolute path):
 
 ```sh
 claude mcp add --scope project --transport stdio jev-scout -- node --experimental-strip-types /ABS/PATH/jev-scout/src/server-mcp.ts
 ```
 
-**4. Set up environment variables** — copy `.env.example` to `.env` (or export
-the variables another way) and fill in at least `SEARXNG_URL=http://localhost:8080`
-plus a Jev key (see [Jev access](#jev-access) below). See the
-[env vars table](#env-vars) for every variable and its default.
+Then copy `.env.example` to `.env` (or export the variables another way)
+and fill in at least `SEARXNG_URL=http://localhost:8080` plus a Jev key.
+
+</details>
+
+**3. Set up environment variables** — `install.sh` copies `.env.example` to
+`.env` for you if it doesn't exist yet; fill in at least
+`SEARXNG_URL=http://localhost:8080` plus a Jev key (see
+[Jev access](#jev-access) below). See the [env vars table](#env-vars) for
+every variable and its default.
 
 ## Recommended agent setup
 
@@ -103,6 +132,23 @@ With this in place, an agent that wants to search or fetch a page has no
 alternative but `guarded_search` / `guarded_fetch` — every research step gets
 judged, and `research_report` reflects the agent's *entire* research
 activity, not a sample of it.
+
+## Hooks (observe built-in tools)
+
+Denying `WebSearch`/`WebFetch` outright isn't always practical. For the case
+where an agent still has those built-ins available and uses them directly,
+[`hooks/jev-scout-observe.sh`](hooks/jev-scout-observe.sh) is a Claude Code
+`PostToolUse` hook that appends a lightweight metadata record (tool name,
+query/URL, an ok flag — never page content) to the same JSONL ledger
+jev-scout's own dashboard and `research_report` read from, so that activity
+shows up in the same stream instead of vanishing entirely.
+
+This is **observation only** — no Jev judging happens in the hook (no
+relevance/credibility/steering_risk score), and there's no gating (a hook
+can't block a tool call). For real scoring and optional gating, an agent
+still has to route through `guarded_search`/`guarded_fetch`. See
+[hooks/README.md](hooks/README.md) for what it does, the exact
+`settings.json` snippet to register it, and this caveat in full.
 
 ## Backends
 
@@ -248,16 +294,10 @@ compares it to a pinned baseline:
 
 | Scope | Cost |
 |---|---|
-| Per search (default `JEV_SCOUT_MAX_JUDGED=8`) | Up to 8 Jev calls — one per judged result (capped at `JEV_SCOUT_MAX_JUDGED`, cache hits make no call at all) ≈ $0.0001 total at the default cap |
+| Per search (default `JEV_SCOUT_MAX_JUDGED=8`) | Up to 9 Jev calls — one per judged result (capped at `JEV_SCOUT_MAX_JUDGED`, cache hits make no call at all) plus, when `goal` is supplied, one query-level `judgeQuery`/`on_task` call ("is this search on task for the goal") ≈ $0.0001 total at the default cap |
 | Per fetch | 1 Jev call (answered + content_class + steering_risk in one call), skipped on budget exhaustion |
 | Per session (defaults: 300 calls / $0.05) | Capped at whichever limit fires first — the call cap, in practice |
 | Dashboard | Free — it's a local static HTML page over SSE, no external calls |
-
-`judge.ts` also defines `judgeQuery`/`on_task` (a query-level "is this search
-on task for the goal" judgment) — it exists as a documented, tested part of
-the `Judge` interface, but `pipeline.ts`'s `runSearch` does not currently call
-it. No query-level Jev call happens per search today; the cost table above
-reflects only the per-result and per-fetch calls the pipeline actually makes.
 
 ## Known jaggedness
 

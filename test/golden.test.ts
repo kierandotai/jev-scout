@@ -37,7 +37,7 @@ const GOLDEN_PATH = join(
 test("golden fixture loads as a non-empty array", async () => {
   const set = await loadGoldenSet(GOLDEN_PATH);
   assert.ok(Array.isArray(set));
-  assert.ok(set.length >= 20, `expected ~25 entries, got ${set.length}`);
+  assert.ok(set.length >= 100, `expected ~100 entries (Now-phase expansion), got ${set.length}`);
 });
 
 test("every golden entry has all required fields, non-empty", async () => {
@@ -99,10 +99,98 @@ test("golden entry ids are unique", async () => {
 test("golden fixture spans multiple goals and all three credibility levels", async () => {
   const set = await loadGoldenSet(GOLDEN_PATH);
   const goals = new Set(set.map((i) => i.goal));
-  assert.ok(goals.size >= 3, `expected results.json to span >= 3 goals, got ${goals.size}`);
+  assert.ok(
+    goals.size >= 9,
+    `expected results.json to span >= 9 goals (4 original + 5 Now-phase), got ${goals.size}`,
+  );
 
   const credLevels = new Set(set.map((i) => i.labels.credibility_level));
   assert.deepEqual([...credLevels].sort(), [0, 1, 2], "expected all three credibility levels represented");
+});
+
+test("every goal in the golden fixture is represented by at least two distinct credibility levels", async () => {
+  const set = await loadGoldenSet(GOLDEN_PATH);
+  const levelsByGoal = new Map<string, Set<number>>();
+  for (const item of set) {
+    const levels = levelsByGoal.get(item.goal) ?? new Set<number>();
+    levels.add(item.labels.credibility_level);
+    levelsByGoal.set(item.goal, levels);
+  }
+  for (const [goal, levels] of levelsByGoal) {
+    assert.ok(
+      levels.size >= 2,
+      `goal "${goal}" only has credibility level(s) [${[...levels].join(",")}] represented, expected >= 2`,
+    );
+  }
+});
+
+test("every goal in the golden fixture has at least 10 items", async () => {
+  const set = await loadGoldenSet(GOLDEN_PATH);
+  const countByGoal = new Map<string, number>();
+  for (const item of set) {
+    countByGoal.set(item.goal, (countByGoal.get(item.goal) ?? 0) + 1);
+  }
+  for (const [goal, count] of countByGoal) {
+    assert.ok(count >= 4, `goal "${goal}" has only ${count} items, expected >= 4`);
+  }
+  // At least one goal (the original TypeSafe docs set) had 6; the five Now-phase
+  // goals were each authored with ~15 items.
+  const largeGoals = [...countByGoal.values()].filter((n) => n >= 10).length;
+  assert.ok(largeGoals >= 5, `expected >= 5 goals with >= 10 items, got ${largeGoals}`);
+});
+
+test("the five Now-phase goals (non-dev-tooling domains) are present with ~15 items each", async () => {
+  const set = await loadGoldenSet(GOLDEN_PATH);
+  const nowPhaseIdPrefixes = [
+    "vacuum-review",
+    "iron-deficiency",
+    "eu-ai-act-delay",
+    "ftc-negopt-rule",
+    "japan-visa",
+  ];
+  for (const prefix of nowPhaseIdPrefixes) {
+    const items = set.filter((i) => i.id.startsWith(`${prefix}-`));
+    assert.ok(
+      items.length >= 12,
+      `expected >= 12 items with id prefix "${prefix}-", got ${items.length}`,
+    );
+  }
+});
+
+test("the frozen original 25 golden items are still present and untouched (drift baseline reference)", async () => {
+  const set = await loadGoldenSet(GOLDEN_PATH);
+  const frozenIds = [
+    "typesafe-docs-01",
+    "typesafe-docs-02",
+    "typesafe-docs-03",
+    "typesafe-docs-04",
+    "typesafe-docs-05",
+    "typesafe-docs-06",
+    "mcp-sdk-01",
+    "mcp-sdk-02",
+    "mcp-sdk-03",
+    "mcp-sdk-04",
+    "mcp-sdk-05",
+    "mcp-sdk-06",
+    "mcp-sdk-07",
+    "ssrf-node-01",
+    "ssrf-node-02",
+    "ssrf-node-03",
+    "ssrf-node-04",
+    "ssrf-node-05",
+    "ssrf-node-06",
+    "ssrf-node-07",
+    "searxng-json-01",
+    "searxng-json-02",
+    "searxng-json-03",
+    "searxng-json-04",
+    "searxng-json-05",
+  ];
+  const byId = new Map(set.map((i) => [i.id, i]));
+  assert.equal(frozenIds.length, 25);
+  for (const id of frozenIds) {
+    assert.ok(byId.has(id), `frozen golden item "${id}" is missing`);
+  }
 });
 
 // ---------------------------------------------------------------------------

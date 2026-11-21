@@ -29,6 +29,7 @@ import {
   type Judge,
   type NoulJudgment,
   type PageJudgment,
+  type QueryJudgment,
   type ResultJudgment,
   type ScoreJudgment,
 } from "./judge.ts";
@@ -91,12 +92,27 @@ export interface DroppedResult {
   readonly reasons: string[];
 }
 
+/**
+ * The query-level "is this search on task for the goal" judgment. Present on
+ * `RunSearchResult` only when `input.goal` was supplied — absent (not even
+ * `scored:false`) when there was no goal to judge against, matching
+ * `judgeQuery`'s own "no call at all without a goal" contract.
+ */
+export interface SearchOnTask {
+  readonly scored: boolean;
+  readonly budget_exhausted?: boolean;
+  /** Present only when `scored` is true. */
+  readonly probability?: number;
+}
+
 export interface RunSearchResult {
   readonly search_id: string;
   readonly results: AnnotatedResult[];
   /** Every gate-dropped result (threshold drops and beyond-cap truncation), gate mode only. */
   readonly dropped: DroppedResult[];
   readonly backends_tried: string[];
+  /** Query-level on_task judgment. Only present when a goal was supplied. */
+  readonly on_task?: SearchOnTask;
   readonly budget?: BudgetState;
 }
 
@@ -236,14 +252,81 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Query-level on_task judging: one budget-reserved judgeQuery call per
+  // search, only when a goal is supplied. Same reserve -> call (with the
+  // shared judgeTimeoutMs signal) -> record cost -> refund+fail-open-on-error
+  // pattern as judgeOneResult/judgePage; budget exhaustion never blocks the
+  // search, it just skips the call and marks the result unscored.
+  // -------------------------------------------------------------------------
+
+  interface OnTaskOutcome {
+    readonly onTask: SearchOnTask | undefined;
+    readonly budgetExhausted: boolean;
+    readonly judgment?: QueryJudgment;
+    readonly latencyMs?: number;
+  }
+
+  async function judgeQueryOnce(input: RunSearchInput): Promise<OnTaskOutcome> {
+    const goal = input.goal;
+    if (goal === undefined || goal.trim() === "") {
+      return { onTask: undefined, budgetExhausted: false };
+    }
+
+    if (!budget.reserve()) {
+      return { onTask: { scored: false, budget_exhausted: true }, budgetExhausted: true };
+    }
+
+    const start = performance.now();
+    try {
+      const judgment = await judge.judgeQuery(
+        { goal, query: input.query },
+        { signal: AbortSignal.timeout(judgeTimeoutMs) },
+      );
+
+      if (judgment === null) {
+        // judgeQuery's contract is "null only when there is no goal" — we
+        // already checked that above, so this is unexpected. Treat it as if
+        // no call happened at all: refund, surface no on_task field.
+        budget.refund();
+        return { onTask: undefined, budgetExhausted: false };
+      }
+
+      const latencyMs = performance.now() - start;
+      budget.record(judgment.cost_usd);
+      return {
+        onTask: { scored: true, probability: judgment.on_task.probability },
+        budgetExhausted: false,
+        judgment,
+        latencyMs,
+      };
+    } catch {
+      // Jev failure fails open: refund the reservation, deliver unscored.
+      budget.refund();
+      return { onTask: { scored: false }, budgetExhausted: false };
+    }
+  }
+
   async function runSearch(input: RunSearchInput): Promise<RunSearchResult> {
     const search_id = randomUUID();
+
+    const onTaskOutcome = await judgeQueryOnce(input);
+    if (onTaskOutcome.budgetExhausted) emitBudgetExhaustedOnce(search_id);
 
     ledger.append({
       session,
       search_id,
       type: "search",
-      payload: { query: input.query, goal: input.goal, maxResults: input.maxResults },
+      payload: {
+        query: input.query,
+        goal: input.goal,
+        maxResults: input.maxResults,
+        ...(onTaskOutcome.onTask ? { on_task: onTaskOutcome.onTask } : {}),
+      },
+      ...(onTaskOutcome.judgment
+        ? { jev: { cost_usd: onTaskOutcome.judgment.cost_usd, rubric_version: onTaskOutcome.judgment.rubric_version } }
+        : {}),
+      ...(onTaskOutcome.latencyMs !== undefined ? { latency_ms: onTaskOutcome.latencyMs } : {}),
     });
 
     const chain = await resolveSearch(config, backends, input.query, input.maxResults);
@@ -353,6 +436,7 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
       results,
       dropped,
       backends_tried: chain.backendsTried,
+      ...(onTaskOutcome.onTask ? { on_task: onTaskOutcome.onTask } : {}),
       ...(budgetField ? { budget: budgetField } : {}),
     };
   }

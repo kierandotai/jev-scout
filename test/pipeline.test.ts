@@ -11,8 +11,10 @@ import {
   type Judge,
   type JudgeCallOptions,
   type JudgePageInput,
+  type JudgeQueryInput,
   type JudgeResultInput,
   type PageJudgment,
+  type QueryJudgment,
   type ResultJudgment,
 } from "../src/judge.ts";
 import type { RawResult, SearchBackend } from "../src/backends/types.ts";
@@ -29,14 +31,17 @@ function ddgReturning(results: RawResult[]): SearchBackend {
 interface JudgeState {
   resultCalls: JudgeResultInput[];
   pageCalls: JudgePageInput[];
+  queryCalls: JudgeQueryInput[];
 }
 
 /** A hand-wired Judge (not MockProvider, not even JevClient) — full control over answers/throws. */
 function scriptedJudge(handlers: {
   judgeResult?: (input: JudgeResultInput, opts?: JudgeCallOptions) => Promise<ResultJudgment>;
   judgePage?: (input: JudgePageInput, opts?: JudgeCallOptions) => Promise<PageJudgment>;
+  /** Defaults to returning `null` (like judgeQuery does with no goal) when not overridden. */
+  judgeQuery?: (input: JudgeQueryInput, opts?: JudgeCallOptions) => Promise<QueryJudgment | null>;
 }): { judge: Judge; state: JudgeState } {
-  const state: JudgeState = { resultCalls: [], pageCalls: [] };
+  const state: JudgeState = { resultCalls: [], pageCalls: [], queryCalls: [] };
   const judge: Judge = {
     rubricVersion: RUBRIC_VERSION,
     async judgeResult(input, opts) {
@@ -44,8 +49,10 @@ function scriptedJudge(handlers: {
       if (handlers.judgeResult === undefined) throw new Error("no judgeResult handler configured");
       return handlers.judgeResult(input, opts);
     },
-    async judgeQuery() {
-      return null;
+    async judgeQuery(input, opts) {
+      state.queryCalls.push(input);
+      if (handlers.judgeQuery === undefined) return null;
+      return handlers.judgeQuery(input, opts);
     },
     async judgePage(input, opts) {
       state.pageCalls.push(input);
@@ -71,6 +78,15 @@ function resultJudgment(relevance: number, credibility: number, worthFetching = 
     rubric_version: RUBRIC_VERSION,
     usage: { input_tokens: 100, output_tokens: 0 },
     cost_usd: 0.0001,
+  };
+}
+
+function queryJudgment(probability: number): QueryJudgment {
+  return {
+    on_task: { probability },
+    rubric_version: RUBRIC_VERSION,
+    usage: { input_tokens: 20, output_tokens: 0 },
+    cost_usd: 0.00002,
   };
 }
 
@@ -544,5 +560,81 @@ test("judge timeout: a never-resolving judgePage call aborts and fails open on f
   if (!result.ok) return;
   assert.equal(result.scored, false);
   assert.equal(result.budget_exhausted, undefined);
+  assert.equal(budget.state().callsUsed, 0, "the aborted reservation must be refunded");
+});
+
+// ---------------------------------------------------------------------------
+// on_task: query-level judgeQuery wiring into runSearch
+// ---------------------------------------------------------------------------
+
+test("on_task: a goal triggers exactly one judgeQuery call, and its probability rides on RunSearchResult and the search ledger event", async () => {
+  const { judge, state } = scriptedJudge({ judgeQuery: async () => queryJudgment(0.87) });
+  const { pipeline, events } = setup({ judge, mode: "annotate", results: [] });
+
+  const res = await pipeline.runSearch({ query: "q", goal: "g", maxResults: 5 });
+
+  assert.equal(state.queryCalls.length, 1, "judgeQuery must be called exactly once");
+  assert.deepEqual(res.on_task, { scored: true, probability: 0.87 });
+
+  const searchEvents = events.filter((e) => e.type === "search");
+  assert.equal(searchEvents.length, 1);
+  const payload = searchEvents[0]!.payload as { on_task?: { scored: boolean; probability?: number } };
+  assert.deepEqual(payload.on_task, { scored: true, probability: 0.87 });
+});
+
+test("on_task: absent from the result and the search ledger event when no goal is supplied, and judgeQuery is never called", async () => {
+  const { judge, state } = scriptedJudge({
+    judgeQuery: async () => {
+      throw new Error("judgeQuery must not be called without a goal");
+    },
+  });
+  const { pipeline, events } = setup({ judge, mode: "annotate", results: [] });
+
+  const res = await pipeline.runSearch({ query: "q", maxResults: 5 });
+
+  assert.equal(state.queryCalls.length, 0, "no goal means no judgeQuery call at all");
+  assert.equal(res.on_task, undefined);
+
+  const searchEvents = events.filter((e) => e.type === "search");
+  assert.equal(searchEvents.length, 1);
+  assert.equal((searchEvents[0]!.payload as Record<string, unknown>).on_task, undefined);
+});
+
+test("on_task: a Jev failure on the query-level call fails open — search still succeeds, on_task carries scored:false, budget refunded", async () => {
+  const { judge } = scriptedJudge({
+    judgeQuery: async () => {
+      throw new Error("Jev provider exploded");
+    },
+  });
+  const { pipeline, budget } = setup({ judge, mode: "annotate", results: [] });
+
+  const res = await pipeline.runSearch({ query: "q", goal: "g", maxResults: 5 });
+
+  assert.deepEqual(res.on_task, { scored: false });
+  assert.equal(budget.state().callsUsed, 0, "the failed reservation must be refunded");
+});
+
+test("on_task: budget exhaustion before the query-level call skips it — search proceeds, on_task marks budget_exhausted", async () => {
+  const { judge, state } = scriptedJudge({ judgeQuery: async () => queryJudgment(0.9) });
+  const { pipeline, events } = setup({ judge, mode: "annotate", maxCalls: 0, results: [] });
+
+  const res = await pipeline.runSearch({ query: "q", goal: "g", maxResults: 5 });
+
+  assert.equal(state.queryCalls.length, 0, "reserve() must fail before judgeQuery is ever called");
+  assert.deepEqual(res.on_task, { scored: false, budget_exhausted: true });
+
+  const budgetEvents = events.filter((e) => e.type === "budget");
+  assert.equal(budgetEvents.length, 1, "budget exhaustion on the query-level call still fires the budget event");
+});
+
+test("on_task: judge timeout on the query-level call aborts and fails open, refunding the reservation", async () => {
+  const { judge } = scriptedJudge({
+    judgeQuery: (_input, opts) => neverResolvesUntilAborted<QueryJudgment>(opts),
+  });
+  const { pipeline, budget } = setup({ judge, mode: "annotate", judgeTimeoutMs: 20, results: [] });
+
+  const res = await pipeline.runSearch({ query: "q", goal: "g", maxResults: 5 });
+
+  assert.deepEqual(res.on_task, { scored: false });
   assert.equal(budget.state().callsUsed, 0, "the aborted reservation must be refunded");
 });

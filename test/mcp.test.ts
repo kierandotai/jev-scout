@@ -482,6 +482,36 @@ test("guarded_search round-trips gate-dropped entries in the dropped field (AN1)
   }
 });
 
+test("guarded_search: on_task round-trips through the schema when the pipeline supplies it, and is absent when it does not", async () => {
+  const h = await harness({
+    pipeline: (ctx) =>
+      stubPipeline({
+        runSearch: async (input) => {
+          const base = await ledgerBackedSearch(ctx, [])(input);
+          return input.goal === undefined
+            ? base
+            : { ...base, on_task: { scored: true, probability: 0.73 } };
+        },
+      }),
+  });
+  try {
+    const withGoal = await callTool(h.client, "guarded_search", { query: "q", goal: "g" });
+    const parsedWithGoal = z.object(guardedSearchOutputShape).strict().parse(withGoal.structuredContent);
+    assert.deepEqual(parsedWithGoal.on_task, { scored: true, probability: 0.73 });
+    // The stringified text block is the same object.
+    assert.deepEqual(textPayload(withGoal).on_task, { scored: true, probability: 0.73 });
+
+    const withoutGoal = await callTool(h.client, "guarded_search", { query: "q" });
+    const parsedWithoutGoal = z
+      .object(guardedSearchOutputShape)
+      .strict()
+      .parse(withoutGoal.structuredContent);
+    assert.equal(parsedWithoutGoal.on_task, undefined);
+  } finally {
+    await h.close();
+  }
+});
+
 test("guarded_search: an empty dropped array round-trips in annotate mode", async () => {
   const h = await harness({
     pipeline: (ctx) => stubPipeline({ runSearch: ledgerBackedSearch(ctx, []) }),
